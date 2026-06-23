@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "prettier --check .",
+    "lint": "eslint . && prettier --check .",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
+    "e2e": "playwright test",
     "format": "prettier --write .",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
@@ -20,12 +21,18 @@
     "typescript": "latest"
   },
   "devDependencies": {
+    "@eslint/js": "latest",
+    "@playwright/test": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "prettier": "latest",
     "prettier-plugin-classnames": "latest",
     "prettier-plugin-merge": "latest",
     "prettier-plugin-tailwindcss": "latest",
+    "eslint": "latest",
+    "eslint-plugin-react-hooks": "latest",
+    "eslint-plugin-react-refresh": "latest",
+    "typescript-eslint": "latest",
     "vitest": "latest"
   }
 }
