@@ -36,6 +36,15 @@ export interface Explanation {
   warnings: string[];
 }
 
+export interface OptimizationHistoryItem {
+  run_id: string;
+  status: string;
+  origin_icao: string;
+  destination_icao: string;
+  aircraft_type: string;
+  profile: string;
+}
+
 const apiUrl =
   import.meta.env.VITE_AEROROUTE_API_URL ?? "http://localhost:8000";
 
@@ -61,4 +70,12 @@ export async function getExplanation(runId: string): Promise<Explanation> {
     throw new Error("The explanation could not be loaded.");
   }
   return (await response.json()) as Explanation;
+}
+
+export async function listOptimizations(): Promise<OptimizationHistoryItem[]> {
+  const response = await fetch(`${apiUrl}/api/v1/optimizations`);
+  if (!response.ok) {
+    throw new Error("The simulation history could not be loaded.");
+  }
+  return (await response.json()) as OptimizationHistoryItem[];
 }
