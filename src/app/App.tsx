@@ -1,9 +1,11 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 import {
   createOptimization,
   Explanation,
   getExplanation,
+  listOptimizations,
+  OptimizationHistoryItem,
   OptimizationProfile,
   OptimizationResult,
 } from "../api/client";
@@ -24,6 +26,13 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [explanation, setExplanation] = useState<Explanation | null>(null);
+  const [history, setHistory] = useState<OptimizationHistoryItem[]>([]);
+
+  useEffect(() => {
+    void listOptimizations()
+      .then(setHistory)
+      .catch(() => setHistory([]));
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -120,6 +129,18 @@ export function App() {
           result={result}
         />
       ) : null}
+      <section aria-label="Simulation history">
+        <h2>Recent simulations</h2>
+        {history.length === 0 ? <p>No stored simulations yet.</p> : null}
+        <ul>
+          {history.map((run) => (
+            <li key={run.run_id}>
+              {run.origin_icao}–{run.destination_icao} · {run.aircraft_type} ·{" "}
+              {run.profile} · {run.status}
+            </li>
+          ))}
+        </ul>
+      </section>
     </main>
   );
 }

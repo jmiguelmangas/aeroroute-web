@@ -4,6 +4,10 @@ test("simulates a trajectory and shows its synthetic result", async ({
   page,
 }) => {
   await page.route("**/api/v1/optimizations", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ contentType: "application/json", body: "[]" });
+      return;
+    }
     await route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({
@@ -26,6 +30,16 @@ test("simulates a trajectory and shows its synthetic result", async ({
       }),
     });
   });
+  await page.route("**/api/v1/optimizations/run-1/explanation", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        provider: "mlx",
+        text: "Selected candidate: minimum_fuel. Fuel: 18000 kg. Time: 400 minutes.",
+        warnings: [],
+      }),
+    })
+  );
 
   await page.goto("/");
   await expect(
@@ -38,4 +52,11 @@ test("simulates a trajectory and shows its synthetic result", async ({
   ).toBeVisible();
   await expect(page.getByText("18000 kg")).toBeVisible();
   await expect(page.getByLabel("Synthetic trajectory map")).toBeVisible();
+  await page.getByRole("button", { name: "Explain this result" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Explanation (mlx)" })
+  ).toBeVisible();
+  await expect(
+    page.getByText("Selected candidate: minimum_fuel.")
+  ).toBeVisible();
 });
