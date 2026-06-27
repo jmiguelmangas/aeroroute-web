@@ -162,7 +162,7 @@ function DashboardPage() {
       destination: "JFK · KJFK — New York JFK",
       aircraft: "A320",
       profile: "minimum_fuel",
-      departureTime: "2025-05-20T12:00",
+      departureTime: defaultDepartureTime(),
     },
   });
   const origin = useWatch({ control, name: "origin" });
@@ -789,6 +789,15 @@ function airportCode(value: string) {
       .trim()
       .toUpperCase()
   );
+}
+
+function defaultDepartureTime() {
+  const departure = new Date(Date.now() + 60 * 60 * 1000);
+  departure.setMinutes(0, 0, 0);
+  const local = new Date(
+    departure.getTime() - departure.getTimezoneOffset() * 60_000
+  );
+  return local.toISOString().slice(0, 16);
 }
 
 function metersToNauticalMiles(value: number) {
