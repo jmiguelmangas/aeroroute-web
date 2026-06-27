@@ -62,6 +62,25 @@ const demoResult: OptimizationResult = {
     time_s: 26_520,
     fuel_kg: 49_780,
     score: 0.91,
+    fuel_breakdown: {
+      modeled_trip_fuel_kg: 49_780,
+      cruise_fuel_kg: 48_480,
+      fixed_climb_descent_fuel_kg: 1_300,
+      mass_assumption_fuel_kg: 3_000,
+      reserves_optimized: false,
+    },
+    objective_breakdown: {
+      fuel_delta: -0.021,
+      time_delta: -0.011,
+      route_extension: 0.007,
+      fuel_weight: 0.8,
+      time_weight: 0.15,
+      extension_weight: 0.05,
+      fuel_component: -0.0168,
+      time_component: -0.00165,
+      extension_component: 0.00035,
+      total_score: -0.0181,
+    },
   }),
   alternatives: [
     withDisplayData({
@@ -159,7 +178,7 @@ function DashboardPage() {
     "explanation" | "factors" | "tradeoffs"
   >("explanation");
   const [technicalView, setTechnicalView] = useState<
-    "summary" | "waypoints" | "profile" | "quality"
+    "summary" | "costs" | "waypoints" | "profile" | "quality"
   >("summary");
 
   const winner = result.winner ?? demoResult.winner;
@@ -374,6 +393,7 @@ function DashboardPage() {
             compact
             items={[
               { id: "summary", label: "Summary" },
+              { id: "costs", label: "Costs" },
               { id: "waypoints", label: "Waypoints" },
               { id: "profile", label: "Profile" },
               { id: "quality", label: "Data quality" },
@@ -597,7 +617,7 @@ function TechnicalView({
   assumptions: string[];
   candidate: Candidate | null;
   dataQuality: DataQualityFlag[];
-  view: "summary" | "waypoints" | "profile" | "quality";
+  view: "summary" | "costs" | "waypoints" | "profile" | "quality";
 }) {
   if (!candidate) {
     return <p>No feasible synthetic trajectory was found.</p>;
@@ -634,6 +654,49 @@ function TechnicalView({
       </dl>
     );
   }
+  if (view === "costs") {
+    const fuel = candidate.fuel_breakdown;
+    const objective = candidate.objective_breakdown;
+    if (!fuel || !objective) {
+      return <p>Cost breakdown is unavailable for this stored result.</p>;
+    }
+    return (
+      <dl className="summary-list">
+        <DetailRow
+          label="Modeled trip fuel"
+          value={`${formatNumber(fuel.modeled_trip_fuel_kg)} kg`}
+        />
+        <DetailRow
+          label="Cruise fuel"
+          value={`${formatNumber(fuel.cruise_fuel_kg)} kg`}
+        />
+        <DetailRow
+          label="Fixed climb/descent"
+          value={`${formatNumber(fuel.fixed_climb_descent_fuel_kg)} kg`}
+        />
+        <DetailRow
+          label="Reserve mass assumption"
+          value={`${formatNumber(fuel.mass_assumption_fuel_kg)} kg`}
+        />
+        <DetailRow
+          label="Fuel score component"
+          value={objective.fuel_component.toFixed(4)}
+        />
+        <DetailRow
+          label="Time score component"
+          value={objective.time_component.toFixed(4)}
+        />
+        <DetailRow
+          label="Extension score component"
+          value={objective.extension_component.toFixed(4)}
+        />
+        <DetailRow
+          label="Total score"
+          value={objective.total_score.toFixed(4)}
+        />
+      </dl>
+    );
+  }
   if (view === "quality") {
     return (
       <div className="quality-view">
@@ -664,6 +727,15 @@ function TechnicalView({
     );
   }
   return <SummaryTable candidate={candidate} />;
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
 }
 
 function VerticalProfile({ candidate }: { candidate: Candidate }) {

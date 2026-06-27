@@ -142,10 +142,12 @@ export interface components {
       display_geojson: components["schemas"]["GeoJsonGeometry"];
       /** Distance M */
       distance_m: number;
+      fuel_breakdown?: components["schemas"]["FuelBreakdown"] | null;
       /** Fuel Kg */
       fuel_kg: number;
       /** Geometry */
       geometry: components["schemas"]["RoutePoint"][];
+      objective_breakdown?: components["schemas"]["ObjectiveBreakdown"] | null;
       /** Path */
       path: string[];
       /** Score */
@@ -176,6 +178,35 @@ export interface components {
       /** Warnings */
       warnings: string[];
     };
+    /** FuelBreakdown */
+    FuelBreakdown: {
+      /** Cruise Fuel Kg */
+      cruise_fuel_kg: number;
+      /** Fixed Climb Descent Fuel Kg */
+      fixed_climb_descent_fuel_kg: number;
+      /** Mass Assumption Fuel Kg */
+      mass_assumption_fuel_kg: number;
+      /** Modeled Trip Fuel Kg */
+      modeled_trip_fuel_kg: number;
+      /**
+       * Reserves Optimized
+       * @default false
+       */
+      reserves_optimized: boolean;
+    };
+    /** FuelIterationSummary */
+    FuelIterationSummary: {
+      /** Converged */
+      converged: boolean;
+      /** Initial Mass Kg */
+      initial_mass_kg: number;
+      /** Iterations */
+      iterations: number;
+      /** Trip Fuel Kg */
+      trip_fuel_kg: number;
+      /** Warning Code */
+      warning_code?: string | null;
+    };
     /** GeoJsonGeometry */
     GeoJsonGeometry: {
       /** Coordinates */
@@ -190,6 +221,29 @@ export interface components {
     HTTPValidationError: {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
+    };
+    /** ObjectiveBreakdown */
+    ObjectiveBreakdown: {
+      /** Extension Component */
+      extension_component: number;
+      /** Extension Weight */
+      extension_weight: number;
+      /** Fuel Component */
+      fuel_component: number;
+      /** Fuel Delta */
+      fuel_delta: number;
+      /** Fuel Weight */
+      fuel_weight: number;
+      /** Route Extension */
+      route_extension: number;
+      /** Time Component */
+      time_component: number;
+      /** Time Delta */
+      time_delta: number;
+      /** Time Weight */
+      time_weight: number;
+      /** Total Score */
+      total_score: number;
     };
     /** OptimizationHistoryItem */
     OptimizationHistoryItem: {
@@ -237,6 +291,7 @@ export interface components {
       baseline?: components["schemas"]["CandidateResponse"] | null;
       /** Data Quality */
       data_quality?: components["schemas"]["DataQualityFlag"][];
+      fuel_iteration?: components["schemas"]["FuelIterationSummary"] | null;
       request?: components["schemas"]["OptimizationRequest"] | null;
       /** Run Id */
       run_id?: string | null;

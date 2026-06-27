@@ -8,4 +8,3 @@ owning repository and update contracts before consumers.
 3. Include tests for changed behavior and document cross-repository impact.
 4. Do not commit secrets, model weights, downloaded datasets, or build output.
 5. Preserve the non-operational simulator disclaimer in user-facing changes.
-

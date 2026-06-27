@@ -1,6 +1,6 @@
 ## Summary
 
-- 
+-
 
 ## Verification
 
@@ -13,4 +13,3 @@
 ## Cross-repository impact
 
 None, or list the required consumer/release updates.
-
