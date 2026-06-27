@@ -1,8 +1,47 @@
 import { Layers3, X } from "lucide-react";
-import { useState } from "react";
+import maplibregl, {
+  GeoJSONSource,
+  LngLatBounds,
+  type StyleSpecification,
+} from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { useEffect, useRef, useState } from "react";
 
 import { Candidate, RoutePoint, WaypointDetail } from "../api/client";
 import { splitAtAntimeridian } from "./routeGeometry";
+
+const EMPTY_COLLECTION = {
+  type: "FeatureCollection" as const,
+  features: [],
+};
+
+const BASEMAP_STYLE: StyleSpecification = {
+  version: 8,
+  sources: {
+    openstreetmap: {
+      type: "raster",
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      maxzoom: 19,
+      attribution:
+        '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>',
+    },
+  },
+  layers: [
+    {
+      id: "openstreetmap",
+      type: "raster",
+      source: "openstreetmap",
+      paint: {
+        "raster-brightness-max": 0.72,
+        "raster-brightness-min": 0.08,
+        "raster-contrast": 0.18,
+        "raster-saturation": -0.32,
+      },
+    },
+  ],
+};
+const MAP_STYLE = import.meta.env.VITE_AEROROUTE_MAP_STYLE_URL || BASEMAP_STYLE;
 
 export function RouteMap({
   alternatives = [],
@@ -15,30 +54,114 @@ export function RouteMap({
   candidate: Candidate | null;
   variant?: "analysis" | "overview";
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<maplibregl.Marker[]>([]);
+  const webglSupported = typeof WebGLRenderingContext !== "undefined";
+  const [mapRevision, setMapRevision] = useState(0);
+  const [basemapUnavailable, setBasemapUnavailable] = useState(false);
   const [layersOpen, setLayersOpen] = useState(false);
   const [selectedWaypoint, setSelectedWaypoint] =
     useState<WaypointDetail | null>(null);
   const [layers, setLayers] = useState({
     alternatives: true,
     baseline: true,
-    weather: variant === "analysis",
     waypoints: variant === "analysis",
   });
-  const routes = [
-    ...(layers.baseline && baseline
-      ? [{ className: "route-line baseline", candidate: baseline }]
-      : []),
-    ...(layers.alternatives
-      ? alternatives.map((route, index) => ({
-          className: `route-line alternative alt-${index + 1}`,
-          candidate: route,
-        }))
-      : []),
-    ...(candidate ? [{ className: "route-line optimal", candidate }] : []),
-  ];
-  const waypoints = candidate?.waypoints ?? [];
-  const origin = candidate?.geometry[0];
-  const destination = candidate?.geometry[candidate.geometry.length - 1];
+
+  useEffect(() => {
+    if (!containerRef.current || !webglSupported) return;
+    const map = new maplibregl.Map({
+      attributionControl: false,
+      center: [-36, 43],
+      container: containerRef.current,
+      dragRotate: false,
+      maxPitch: 0,
+      pitchWithRotate: false,
+      style: MAP_STYLE,
+      zoom: 2.4,
+    });
+    mapRef.current = map;
+    map.addControl(
+      new maplibregl.NavigationControl({ showCompass: false }),
+      "top-left"
+    );
+    map.addControl(
+      new maplibregl.AttributionControl({ compact: false }),
+      "bottom-right"
+    );
+    map.on("load", () => {
+      if (mapRef.current !== map) return;
+      addRouteLayers(map);
+      setMapRevision((revision) => revision + 1);
+    });
+    map.on("error", (event) => {
+      if (String(event.error).includes("tile")) setBasemapUnavailable(true);
+    });
+    return () => {
+      markersRef.current.forEach((marker) => marker.remove());
+      markersRef.current = [];
+      map.remove();
+      mapRef.current = null;
+    };
+  }, [webglSupported]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (
+      !map ||
+      mapRevision === 0 ||
+      !map.isStyleLoaded() ||
+      !map.getLayer("optimal-line")
+    )
+      return;
+    map.setLayoutProperty(
+      "baseline-line",
+      "visibility",
+      layers.baseline && baseline ? "visible" : "none"
+    );
+    map.setLayoutProperty(
+      "alternative-lines",
+      "visibility",
+      layers.alternatives && alternatives.length ? "visible" : "none"
+    );
+    setSourceData(map, "baseline-route", routeCollection(baseline));
+    setSourceData(map, "alternative-routes", routesCollection(alternatives));
+    setSourceData(map, "optimal-route", routeCollection(candidate));
+    fitRoute(map, candidate, variant);
+  }, [alternatives, baseline, candidate, layers, mapRevision, variant]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current = [];
+    if (!map || mapRevision === 0 || !candidate) return;
+
+    const origin = candidate.geometry[0];
+    const destination = candidate.geometry[candidate.geometry.length - 1];
+    if (origin)
+      markersRef.current.push(addAirportMarker(map, origin, "Origin"));
+    if (destination) {
+      markersRef.current.push(
+        addAirportMarker(map, destination, "Destination")
+      );
+    }
+    if (layers.waypoints) {
+      candidate.waypoints.slice(1, -1).forEach((waypoint, index) => {
+        const element = document.createElement("button");
+        element.type = "button";
+        element.className = "waypoint-marker";
+        element.title = `FL${waypoint.flight_level}`;
+        element.ariaLabel = `${waypoint.display_name ?? `SYN-${index + 1}`}, synthetic node, flight level ${waypoint.flight_level}`;
+        element.addEventListener("click", () => setSelectedWaypoint(waypoint));
+        markersRef.current.push(
+          new maplibregl.Marker({ element })
+            .setLngLat([waypoint.longitude_deg, waypoint.latitude_deg])
+            .addTo(map)
+        );
+      });
+    }
+  }, [candidate, layers.waypoints, mapRevision]);
 
   function toggleLayer(layer: keyof typeof layers) {
     setLayers((current) => ({ ...current, [layer]: !current[layer] }));
@@ -46,93 +169,17 @@ export function RouteMap({
 
   return (
     <figure className={`route-map ${variant}`}>
-      <svg
+      <div
         aria-label="Synthetic trajectory map"
-        role="img"
-        viewBox="0 0 800 400"
-        width="100%"
-      >
-        <defs>
-          <linearGradient id="ocean" x1="0%" x2="100%" y1="0%" y2="100%">
-            <stop offset="0%" stopColor="#12395a" />
-            <stop offset="48%" stopColor="#09243e" />
-            <stop offset="100%" stopColor="#04182c" />
-          </linearGradient>
-          <radialGradient id="weatherGlow" cx="48%" cy="45%" r="45%">
-            <stop offset="0%" stopColor="#7d4dff" stopOpacity="0.55" />
-            <stop offset="58%" stopColor="#0eb5ff" stopOpacity="0.16" />
-            <stop offset="100%" stopColor="#0eb5ff" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        <rect fill="url(#ocean)" height="400" width="800" />
-        <path
-          className="land"
-          d="M0 44 C86 58 122 92 154 142 C184 191 150 260 210 326 L0 400 Z"
-        />
-        <path
-          className="land europe"
-          d="M540 0 L800 0 L800 400 L676 400 C710 300 667 236 699 171 C626 150 602 95 540 72 Z"
-        />
-        <path
-          className="land africa"
-          d="M632 214 C708 220 760 292 733 400 L583 400 C559 326 581 253 632 214 Z"
-        />
-        {layers.weather ? (
-          <>
-            <rect className="wind-field" height="400" width="800" />
-            <ellipse
-              cx="390"
-              cy="190"
-              fill="url(#weatherGlow)"
-              rx="260"
-              ry="130"
-            />
-            {Array.from({ length: 64 }, (_, index) => (
-              <path
-                className="wind-streak"
-                d="M0 0 l22 -5"
-                key={index}
-                style={{
-                  transform: `translate(${40 + (index % 16) * 48}px, ${
-                    55 + Math.floor(index / 16) * 70
-                  }px) rotate(${-18 + (index % 5) * 7}deg)`,
-                }}
-              />
-            ))}
-          </>
-        ) : null}
-        {routes.map((route) =>
-          candidateSegments(route.candidate).map((segment, index) => (
-            <polyline
-              className={route.className}
-              fill="none"
-              key={`${route.className}-${index}`}
-              points={segment.map(projectPoint).join(" ")}
-            />
-          ))
-        )}
-        {origin ? <MapPoint label="Origin" point={origin} /> : null}
-        {destination ? (
-          <MapPoint label="Destination" point={destination} />
-        ) : null}
-      </svg>
-
-      {layers.waypoints
-        ? waypoints.slice(1, -1).map((waypoint, index) => {
-            const position = projectPercent(waypoint);
-            return (
-              <button
-                aria-label={`${waypoint.display_name ?? `SYN-${index + 1}`}, synthetic node, flight level ${waypoint.flight_level}`}
-                className="waypoint-marker"
-                key={waypoint.node_id}
-                onClick={() => setSelectedWaypoint(waypoint)}
-                style={{ left: position.left, top: position.top }}
-                title={`FL${waypoint.flight_level}`}
-                type="button"
-              />
-            );
-          })
-        : null}
+        className="route-map__canvas"
+        ref={containerRef}
+        role="region"
+      />
+      {!webglSupported || basemapUnavailable ? (
+        <div className="map-status" role="status">
+          Live basemap unavailable
+        </div>
+      ) : null}
 
       <button
         aria-expanded={layersOpen}
@@ -204,17 +251,100 @@ export function RouteMap({
         {layers.baseline && baseline ? (
           <span className="legend-baseline">Baseline</span>
         ) : null}
-        {layers.alternatives ? <span>Alternatives</span> : null}
+        {layers.alternatives && alternatives.length ? (
+          <span>Alternatives</span>
+        ) : null}
       </figcaption>
     </figure>
   );
 }
 
+function addRouteLayers(map: maplibregl.Map) {
+  map.addSource("baseline-route", { type: "geojson", data: EMPTY_COLLECTION });
+  map.addSource("alternative-routes", {
+    type: "geojson",
+    data: EMPTY_COLLECTION,
+  });
+  map.addSource("optimal-route", { type: "geojson", data: EMPTY_COLLECTION });
+  map.addLayer({
+    id: "baseline-line",
+    type: "line",
+    source: "baseline-route",
+    paint: {
+      "line-color": "#b9d9f2",
+      "line-dasharray": [1.5, 3],
+      "line-opacity": 0.8,
+      "line-width": 2,
+    },
+  });
+  map.addLayer({
+    id: "alternative-lines",
+    type: "line",
+    source: "alternative-routes",
+    paint: {
+      "line-color": "#f3f8ff",
+      "line-dasharray": [4, 3],
+      "line-opacity": 0.85,
+      "line-width": 2.4,
+    },
+  });
+  map.addLayer({
+    id: "optimal-line-casing",
+    type: "line",
+    source: "optimal-route",
+    paint: {
+      "line-color": "#092016",
+      "line-opacity": 0.78,
+      "line-width": 7,
+    },
+  });
+  map.addLayer({
+    id: "optimal-line",
+    type: "line",
+    source: "optimal-route",
+    paint: {
+      "line-color": "#6ed43d",
+      "line-width": 4,
+    },
+  });
+}
+
+function setSourceData(
+  map: maplibregl.Map,
+  sourceId: string,
+  data: ReturnType<typeof routesCollection>
+) {
+  const source = map.getSource(sourceId);
+  if (source) (source as GeoJSONSource).setData(data);
+}
+
+function routesCollection(routes: Candidate[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: routes.flatMap((route, routeIndex) =>
+      candidateSegments(route).map((segment, segmentIndex) => ({
+        type: "Feature" as const,
+        id: `${routeIndex}-${segmentIndex}`,
+        properties: { routeIndex },
+        geometry: {
+          type: "LineString" as const,
+          coordinates: segment.map((point) => [
+            point.longitude_deg,
+            point.latitude_deg,
+          ]),
+        },
+      }))
+    ),
+  };
+}
+
+function routeCollection(candidate?: Candidate | null) {
+  return routesCollection(candidate ? [candidate] : []);
+}
+
 function candidateSegments(candidate: Candidate): RoutePoint[][] {
   const geojson = candidate.display_geojson;
-  if (!geojson) {
-    return splitAtAntimeridian(candidate.geometry);
-  }
+  if (!geojson) return splitAtAntimeridian(candidate.geometry);
   if (geojson.type === "MultiLineString") {
     return (geojson.coordinates as number[][][]).map((segment) =>
       segment.map(([longitude_deg, latitude_deg]) => ({
@@ -236,29 +366,34 @@ function candidateSegments(candidate: Candidate): RoutePoint[][] {
   return splitAtAntimeridian(candidate.geometry);
 }
 
-function MapPoint({ label, point }: { label: string; point: RoutePoint }) {
-  const [x, y] = projectPoint(point).split(",");
-  return (
-    <g className="map-point">
-      <circle cx={x} cy={y} r="6" />
-      <text x={Number(x) + 10} y={Number(y) - 8}>
-        {label}
-      </text>
-    </g>
+function addAirportMarker(
+  map: maplibregl.Map,
+  point: RoutePoint,
+  label: string
+) {
+  const element = document.createElement("div");
+  element.className = "airport-marker";
+  element.innerHTML = `<span aria-hidden="true"></span><strong>${label}</strong>`;
+  return new maplibregl.Marker({ element })
+    .setLngLat([point.longitude_deg, point.latitude_deg])
+    .addTo(map);
+}
+
+function fitRoute(
+  map: maplibregl.Map,
+  candidate: Candidate | null,
+  variant: "analysis" | "overview"
+) {
+  if (!candidate?.geometry.length) return;
+  const bounds = new LngLatBounds();
+  candidate.geometry.forEach((point) =>
+    bounds.extend([point.longitude_deg, point.latitude_deg])
   );
-}
-
-function projectPoint(point: RoutePoint) {
-  return `${((point.longitude_deg + 100) / 110) * 800},${
-    ((68 - point.latitude_deg) / 42) * 400
-  }`;
-}
-
-function projectPercent(point: RoutePoint) {
-  return {
-    left: `${((point.longitude_deg + 100) / 110) * 100}%`,
-    top: `${((68 - point.latitude_deg) / 42) * 100}%`,
-  };
+  map.fitBounds(bounds, {
+    duration: 0,
+    maxZoom: 5,
+    padding: variant === "overview" ? 52 : 64,
+  });
 }
 
 function layerLabel(key: string) {

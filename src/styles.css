@@ -785,65 +785,70 @@ h1 span,
   background: #06182b;
 }
 
-.route-map svg {
-  display: block;
-  height: 100%;
+.route-map__canvas {
+  position: absolute;
+  inset: 0;
 }
 
-.land {
-  fill: #315f44;
-  opacity: 0.88;
+.route-map .maplibregl-map {
+  font: inherit;
 }
 
-.land.europe {
-  fill: #6d7d58;
+.route-map .maplibregl-ctrl-group,
+.route-map .maplibregl-ctrl-attrib {
+  border: 1px solid rgba(157, 198, 255, 0.26);
+  border-radius: 5px;
+  color: #dcecff;
+  background: rgba(2, 11, 21, 0.88);
+  box-shadow: none;
 }
 
-.land.africa {
-  fill: #9b8058;
+.route-map .maplibregl-ctrl-group button {
+  background-color: transparent;
 }
 
-.wind-field {
-  fill: rgba(13, 60, 95, 0.23);
+.route-map .maplibregl-ctrl-group button + button {
+  border-top-color: rgba(157, 198, 255, 0.2);
 }
 
-.wind-streak {
-  stroke: rgba(81, 178, 255, 0.62);
-  stroke-width: 1.7;
+.route-map .maplibregl-ctrl-icon {
+  filter: invert(1);
 }
 
-.route-line {
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.route-map .maplibregl-ctrl-attrib a {
+  color: #c8dcf2;
 }
 
-.route-line.optimal {
-  stroke: #68d132;
-  stroke-width: 5;
+.airport-marker {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: white;
+  font-size: 0.76rem;
+  text-shadow: 0 1px 3px #000;
+  white-space: nowrap;
 }
 
-.route-line.alternative {
-  stroke: rgba(241, 248, 255, 0.82);
-  stroke-dasharray: 10 10;
-  stroke-width: 3;
+.airport-marker span {
+  width: 11px;
+  height: 11px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #f5634d;
+  box-shadow: 0 0 0 3px rgba(245, 99, 77, 0.22);
 }
 
-.route-line.baseline {
-  stroke: rgba(172, 207, 237, 0.72);
-  stroke-dasharray: 4 8;
-  stroke-width: 2;
-}
-
-.map-point circle {
-  fill: #f5634d;
-  stroke: white;
-  stroke-width: 2;
-}
-
-.map-point text {
-  fill: white;
-  font-size: 17px;
-  font-weight: 800;
+.map-status {
+  position: absolute;
+  z-index: 6;
+  top: 14px;
+  left: 58px;
+  padding: 8px 10px;
+  border: 1px solid rgba(242, 184, 75, 0.55);
+  border-radius: 5px;
+  color: #ffe2a3;
+  background: rgba(40, 27, 5, 0.88);
+  font-size: 0.75rem;
 }
 
 .map-legend {
@@ -882,7 +887,8 @@ h1 span,
 
 .map-layers-button {
   position: absolute;
-  top: 14px;
+  z-index: 8;
+  top: 10px;
   right: 14px;
   display: grid;
   width: 38px;
@@ -922,11 +928,8 @@ h1 span,
 }
 
 .waypoint-marker {
-  position: absolute;
-  z-index: 4;
   width: 12px;
   height: 12px;
-  transform: translate(-50%, -50%);
   border: 2px solid #e8f5ff;
   border-radius: 50%;
   padding: 0;

@@ -7,6 +7,11 @@ API client data and must never reproduce backend scoring or access databases.
 > approximate, may use incomplete public data, and are not suitable for
 > operational flight planning or safety-critical decisions.
 
+Route views use MapLibre GL with backend GeoJSON. Local development falls back
+to the standard OpenStreetMap raster service with visible attribution. Set
+`VITE_AEROROUTE_MAP_STYLE_URL` to an operated MapLibre style for deployed or
+higher-volume environments; do not remove the data-provider attribution.
+
 ## Component library
 
 The AeroRoute component library lives in `src/components`. It shares the same
