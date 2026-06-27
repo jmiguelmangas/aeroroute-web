@@ -266,7 +266,7 @@ export interface components {
        * Aircraft Type
        * @enum {string}
        */
-      aircraft_type: "A320" | "B738";
+      aircraft_type: "A320" | "B738" | "B77W" | "B788" | "A359" | "A388";
       /** Departure Time Utc */
       departure_time_utc?: string | null;
       /** Destination Icao */

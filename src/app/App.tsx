@@ -38,7 +38,7 @@ const profiles: Record<OptimizationProfile, string> = {
 const searchSchema = z.object({
   origin: z.string().min(3, "Select an origin airport."),
   destination: z.string().min(3, "Select a destination airport."),
-  aircraft: z.enum(["A320", "B738"]),
+  aircraft: z.enum(["A320", "B738", "B77W", "B788", "A359", "A388"]),
   profile: z.enum(["minimum_fuel", "minimum_time", "balanced"]),
   departureTime: z.string().min(1, "Departure time is required."),
 });
@@ -296,6 +296,10 @@ function DashboardPage() {
               <select {...register("aircraft")}>
                 <option value="A320">A320</option>
                 <option value="B738">B737-800</option>
+                <option value="B77W">Boeing 777-300ER</option>
+                <option value="B788">Boeing 787-8</option>
+                <option value="A359">Airbus A350-900</option>
+                <option value="A388">Airbus A380-800</option>
               </select>
             </Field>
             <Field label="Objective">
