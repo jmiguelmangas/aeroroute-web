@@ -3,3 +3,7 @@ dist/
 *.tsbuildinfo
 playwright-report/
 test-results/
+.DS_Store
+._*
+.AppleDouble/
+storybook-static/

@@ -1,64 +1,86 @@
-export type OptimizationProfile = "minimum_fuel" | "minimum_time" | "balanced";
+import createClient from "openapi-fetch";
 
-export interface OptimizationRequest {
-  origin_icao: string;
-  destination_icao: string;
-  aircraft_type: "A320" | "B738";
-  profile: OptimizationProfile;
-}
+import type { components, paths } from "./generated/schema";
 
-export interface Candidate {
-  path: string[];
-  geometry: RoutePoint[];
-  distance_m: number;
-  time_s: number;
-  fuel_kg: number;
-  score: number;
-}
-
-export interface RoutePoint {
-  latitude_deg: number;
-  longitude_deg: number;
-}
-
-export interface OptimizationResult {
-  run_id: string | null;
-  status: string;
-  algorithm_version: string;
-  winner: Candidate | null;
-  alternatives: Candidate[];
-  solver_termination_reason: string;
-}
-
-export interface Explanation {
-  provider: "template" | "mlx";
-  text: string;
-  warnings: string[];
-}
+export type Airport = components["schemas"]["AirportResponse"];
+export type Candidate = components["schemas"]["CandidateResponse"];
+export type DataQualityFlag = components["schemas"]["DataQualityFlag"];
+export type Explanation = components["schemas"]["ExplanationResponse"];
+export type OptimizationHistoryItem =
+  components["schemas"]["OptimizationHistoryItem"];
+export type OptimizationRequest = components["schemas"]["OptimizationRequest"];
+export type OptimizationResult = components["schemas"]["OptimizationResponse"];
+export type RoutePoint = components["schemas"]["RoutePoint"];
+export type WaypointDetail = components["schemas"]["WaypointDetail"];
+export type OptimizationProfile = OptimizationRequest["profile"];
 
 const apiUrl =
   import.meta.env.VITE_AEROROUTE_API_URL ?? "http://localhost:8000";
 
+const api = createClient<paths>({
+  baseUrl: apiUrl,
+  fetch: (request) => globalThis.fetch(request),
+});
+
 export async function createOptimization(
   request: OptimizationRequest
 ): Promise<OptimizationResult> {
-  const response = await fetch(`${apiUrl}/api/v1/optimizations`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
-  });
-  if (!response.ok) {
+  try {
+    const { data, error } = await api.POST("/api/v1/optimizations", {
+      body: request,
+    });
+    if (error || !data) throw new Error();
+    return data;
+  } catch {
     throw new Error("The simulation could not be completed.");
   }
-  return (await response.json()) as OptimizationResult;
+}
+
+export async function searchAirports(query: string): Promise<Airport[]> {
+  try {
+    const { data, error } = await api.GET("/api/v1/airports", {
+      params: { query: { query, limit: 8 } },
+    });
+    if (error || !data) throw new Error();
+    return data.items;
+  } catch {
+    throw new Error("Airport catalogue unavailable.");
+  }
+}
+
+export async function listOptimizations(): Promise<OptimizationHistoryItem[]> {
+  try {
+    const { data, error } = await api.GET("/api/v1/optimizations");
+    if (error || !data) throw new Error();
+    return data;
+  } catch {
+    throw new Error("Run history unavailable.");
+  }
+}
+
+export async function getOptimization(
+  runId: string
+): Promise<OptimizationResult> {
+  try {
+    const { data, error } = await api.GET("/api/v1/optimizations/{run_id}", {
+      params: { path: { run_id: runId } },
+    });
+    if (error || !data) throw new Error();
+    return data;
+  } catch {
+    throw new Error("The stored run could not be loaded.");
+  }
 }
 
 export async function getExplanation(runId: string): Promise<Explanation> {
-  const response = await fetch(
-    `${apiUrl}/api/v1/optimizations/${runId}/explanation`
-  );
-  if (!response.ok) {
+  try {
+    const { data, error } = await api.GET(
+      "/api/v1/optimizations/{run_id}/explanation",
+      { params: { path: { run_id: runId } } }
+    );
+    if (error || !data) throw new Error();
+    return data;
+  } catch {
     throw new Error("The explanation could not be loaded.");
   }
-  return (await response.json()) as Explanation;
 }

@@ -1,13 +1,33 @@
-import { FormEvent, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { BrainCircuit, Fuel, LockKeyhole, Search, Wind } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { Link, Route, Routes } from "react-router-dom";
+import { z } from "zod";
 
 import {
+  Candidate,
   createOptimization,
+  DataQualityFlag,
   Explanation,
   getExplanation,
   OptimizationProfile,
   OptimizationResult,
 } from "../api/client";
+import {
+  Alert,
+  AirportCombobox,
+  Brand,
+  Button,
+  Capability,
+  Field,
+  Metric,
+  Panel,
+  StatusBadge,
+  Tabs,
+} from "../components";
 import { RouteMap } from "../maps/RouteMap";
+import { AboutPage, HistoryPage, RunDetailPage } from "../routes/pages";
 
 const profiles: Record<OptimizationProfile, string> = {
   minimum_fuel: "Minimum fuel",
@@ -15,30 +35,152 @@ const profiles: Record<OptimizationProfile, string> = {
   balanced: "Balanced",
 };
 
+const searchSchema = z.object({
+  origin: z.string().min(3, "Select an origin airport."),
+  destination: z.string().min(3, "Select a destination airport."),
+  aircraft: z.enum(["A320", "B738"]),
+  profile: z.enum(["minimum_fuel", "minimum_time", "balanced"]),
+  departureTime: z.string().min(1, "Departure time is required."),
+});
+
+type SearchForm = z.infer<typeof searchSchema>;
+
+const demoResult: OptimizationResult = {
+  run_id: null,
+  status: "demo",
+  algorithm_version: "demo-reference",
+  solver_termination_reason: "reference_fixture",
+  winner: withDisplayData({
+    path: ["LEMD", "N42W025", "N45W050", "KJFK"],
+    geometry: [
+      { latitude_deg: 40.47, longitude_deg: -3.56 },
+      { latitude_deg: 45.2, longitude_deg: -22.0 },
+      { latitude_deg: 47.4, longitude_deg: -48.0 },
+      { latitude_deg: 40.64, longitude_deg: -73.78 },
+    ],
+    distance_m: 5_860_000,
+    time_s: 26_520,
+    fuel_kg: 49_780,
+    score: 0.91,
+  }),
+  alternatives: [
+    withDisplayData({
+      path: ["LEMD", "N39W025", "N42W050", "KJFK"],
+      geometry: [
+        { latitude_deg: 40.47, longitude_deg: -3.56 },
+        { latitude_deg: 41.6, longitude_deg: -23.0 },
+        { latitude_deg: 43.1, longitude_deg: -49.0 },
+        { latitude_deg: 40.64, longitude_deg: -73.78 },
+      ],
+      distance_m: 5_819_000,
+      time_s: 26_820,
+      fuel_kg: 50_860,
+      score: 0.86,
+    }),
+    withDisplayData({
+      path: ["LEMD", "N48W020", "N51W045", "KJFK"],
+      geometry: [
+        { latitude_deg: 40.47, longitude_deg: -3.56 },
+        { latitude_deg: 49.1, longitude_deg: -20.0 },
+        { latitude_deg: 52.5, longitude_deg: -45.0 },
+        { latitude_deg: 40.64, longitude_deg: -73.78 },
+      ],
+      distance_m: 6_075_000,
+      time_s: 27_300,
+      fuel_kg: 52_340,
+      score: 0.82,
+    }),
+  ],
+  assumptions: [
+    "Still-air deterministic performance model",
+    "Representative initial mass of 65,000 kg",
+    "Synthetic cruise corridor",
+  ],
+  data_quality: [
+    {
+      code: "WEATHER_FIXTURE",
+      severity: "warning",
+      message: "Weather uses a frozen reference snapshot.",
+    },
+    {
+      code: "PERFORMANCE_CURATED",
+      severity: "info",
+      message: "Aircraft performance uses a curated reference model.",
+    },
+  ],
+};
+
+const demoExplanation: Explanation = {
+  provider: "template",
+  text: "The selected synthetic route uses the strongest tailwind corridor while keeping the added distance modest. It saves 1,080 kg of estimated fuel versus Alternative 1 in this reference scenario.",
+  warnings: [
+    "Synthetic trajectory only; not suitable for operational flight planning.",
+  ],
+};
+
 export function App() {
-  const [origin, setOrigin] = useState("LEMD");
-  const [destination, setDestination] = useState("KJFK");
-  const [aircraft, setAircraft] = useState<"A320" | "B738">("A320");
-  const [profile, setProfile] = useState<OptimizationProfile>("balanced");
-  const [result, setResult] = useState<OptimizationResult | null>(null);
+  return (
+    <Routes>
+      <Route path="/" element={<DashboardPage />} />
+      <Route path="/runs" element={<HistoryPage />} />
+      <Route path="/runs/:runId" element={<RunDetailPage />} />
+      <Route path="/about" element={<AboutPage />} />
+    </Routes>
+  );
+}
+
+function DashboardPage() {
+  const {
+    control,
+    formState: { errors },
+    handleSubmit,
+    register,
+    setValue,
+  } = useForm<SearchForm>({
+    resolver: zodResolver(searchSchema),
+    defaultValues: {
+      origin: "MAD · LEMD — Madrid Barajas",
+      destination: "JFK · KJFK — New York JFK",
+      aircraft: "A320",
+      profile: "minimum_fuel",
+      departureTime: "2025-05-20T12:00",
+    },
+  });
+  const origin = useWatch({ control, name: "origin" });
+  const destination = useWatch({ control, name: "destination" });
+  const [result, setResult] = useState<OptimizationResult>(demoResult);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [explanation, setExplanation] = useState<Explanation | null>(null);
+  const [explanation, setExplanation] = useState<Explanation>(demoExplanation);
+  const [routeView, setRouteView] = useState<
+    "map" | "profile" | "winds" | "details"
+  >("map");
+  const [explanationView, setExplanationView] = useState<
+    "explanation" | "factors" | "tradeoffs"
+  >("explanation");
+  const [technicalView, setTechnicalView] = useState<
+    "summary" | "waypoints" | "profile" | "quality"
+  >("summary");
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const winner = result.winner ?? demoResult.winner;
+  const candidates = useMemo(
+    () => [winner, ...result.alternatives].filter(Boolean) as Candidate[],
+    [result.alternatives, winner]
+  );
+
+  async function submit(values: SearchForm) {
     setLoading(true);
     setError(null);
-    setExplanation(null);
     try {
-      setResult(
-        await createOptimization({
-          origin_icao: origin.toUpperCase(),
-          destination_icao: destination.toUpperCase(),
-          aircraft_type: aircraft,
-          profile,
-        })
-      );
+      const apiResult = await createOptimization({
+        origin_icao: airportCode(values.origin),
+        destination_icao: airportCode(values.destination),
+        departure_time_utc: new Date(values.departureTime).toISOString(),
+        aircraft_type: values.aircraft,
+        profile: values.profile,
+      });
+      setResult(apiResult);
+      setExplanation(demoExplanation);
     } catch (submissionError) {
       setError(
         submissionError instanceof Error
@@ -50,126 +192,570 @@ export function App() {
     }
   }
 
+  async function loadExplanation() {
+    if (result.run_id) {
+      setExplanation(await getExplanation(result.run_id));
+    }
+  }
+
   return (
-    <main>
-      <h1>AeroRoute MLX</h1>
-      <p>Educational synthetic trajectory-efficiency simulator</p>
-      <p>
-        Results are approximate, may use incomplete public data, and are not
-        suitable for operational flight planning or safety-critical decisions.
+    <main className="app-shell">
+      <section className="hero-panel" aria-label="AeroRoute overview">
+        <div className="brand-block">
+          <Brand />
+          <p className="hero-title">
+            Smarter routes. <span>Better decisions.</span>
+          </p>
+          <p className="hero-copy">
+            AeroRoute MLX compares synthetic aircraft trajectories with
+            deterministic optimization, weather-aware scoring, and local
+            explanation support.
+          </p>
+          <div className="capability-grid" aria-label="Core capabilities">
+            <Capability
+              icon={Fuel}
+              title="Optimize"
+              body="Fuel, time, emissions or cost"
+            />
+            <Capability
+              icon={Wind}
+              title="Weather"
+              body="Cruise-level winds and timing"
+            />
+            <Capability
+              icon={BrainCircuit}
+              title="Explain"
+              body="Local AI or deterministic text"
+            />
+            <Capability
+              icon={LockKeyhole}
+              title="Private"
+              body="No sensitive data in the cloud"
+            />
+          </div>
+        </div>
+
+        <section className="search-workspace" aria-label="Find routes">
+          <div className="workspace-nav">
+            <Brand compact />
+            <Link className="nav-item active" to="/">
+              New search
+            </Link>
+            <a className="nav-item" href="#route-analysis">
+              Results
+            </a>
+            <Link className="nav-item" to="/runs">
+              Saved routes
+            </Link>
+            <button className="nav-item" type="button">
+              Aircraft
+            </button>
+          </div>
+          <form className="route-form" onSubmit={handleSubmit(submit)}>
+            <h2>New search</h2>
+            <AirportCombobox
+              label="Origin"
+              onChange={(value) =>
+                setValue("origin", value, { shouldValidate: true })
+              }
+              value={origin}
+            />
+            {errors.origin ? (
+              <span className="field-error">{errors.origin.message}</span>
+            ) : null}
+            <AirportCombobox
+              label="Destination"
+              onChange={(value) =>
+                setValue("destination", value, { shouldValidate: true })
+              }
+              value={destination}
+            />
+            {errors.destination ? (
+              <span className="field-error">{errors.destination.message}</span>
+            ) : null}
+            <Field label="Aircraft">
+              <select {...register("aircraft")}>
+                <option value="A320">A320</option>
+                <option value="B738">B737-800</option>
+              </select>
+            </Field>
+            <Field label="Objective">
+              <select {...register("profile")}>
+                {Object.entries(profiles).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Date and time (UTC)">
+              <input type="datetime-local" {...register("departureTime")} />
+            </Field>
+            <Button icon={Search} loading={loading} type="submit">
+              {loading ? "Searching..." : "Search routes"}
+            </Button>
+          </form>
+          <div className="map-stage">
+            <RouteMap
+              alternatives={result.alternatives}
+              baseline={result.baseline}
+              candidate={winner}
+              variant="overview"
+            />
+          </div>
+        </section>
+      </section>
+
+      {error ? <Alert>{error}</Alert> : null}
+
+      <section
+        className="dashboard-grid"
+        id="route-analysis"
+        aria-label="Route analysis"
+      >
+        <Panel title="2. Compare alternatives">
+          <ComparisonTable candidates={candidates} />
+          <FuelBars candidates={candidates} />
+          <p className="fine-print">
+            Calculations use synthetic fixture data unless connected to the API.
+          </p>
+        </Panel>
+
+        <Panel className="wide-panel" title="3. Visualize the route">
+          <Tabs
+            active={routeView}
+            ariaLabel="Route views"
+            items={[
+              { id: "map", label: "Map" },
+              { id: "profile", label: "Vertical profile" },
+              { id: "winds", label: "Winds" },
+              { id: "details", label: "Details" },
+            ]}
+            onChange={setRouteView}
+          />
+          <RouteVisualization
+            candidate={winner}
+            alternatives={result.alternatives}
+            baseline={result.baseline}
+            view={routeView}
+          />
+        </Panel>
+
+        <Panel title="4. Understand why">
+          <Tabs
+            active={explanationView}
+            ariaLabel="Explanation views"
+            compact
+            items={[
+              { id: "explanation", label: "AI explanation" },
+              { id: "factors", label: "Key factors" },
+              { id: "tradeoffs", label: "Trade-offs" },
+            ]}
+            onChange={setExplanationView}
+          />
+          <ExplanationView
+            explanation={explanation}
+            view={explanationView}
+            winner={winner}
+          />
+          <Button
+            onClick={() => void loadExplanation()}
+            type="button"
+            variant="secondary"
+          >
+            Regenerate explanation
+          </Button>
+        </Panel>
+
+        <Panel title="5. Technical details">
+          <Tabs
+            active={technicalView}
+            ariaLabel="Technical views"
+            compact
+            items={[
+              { id: "summary", label: "Summary" },
+              { id: "waypoints", label: "Waypoints" },
+              { id: "profile", label: "Profile" },
+              { id: "quality", label: "Data quality" },
+            ]}
+            onChange={setTechnicalView}
+          />
+          <TechnicalView
+            assumptions={result.assumptions ?? []}
+            candidate={winner}
+            dataQuality={result.data_quality ?? []}
+            view={technicalView}
+          />
+        </Panel>
+      </section>
+
+      <footer className="trust-strip">
+        <span>No sensitive data in the cloud</span>
+        <span>Local execution with MLX</span>
+        <span>Traceable and reproducible</span>
+        <span>Built for pilots, dispatchers and analysts</span>
+      </footer>
+      <p className="disclaimer">
+        AeroRoute MLX is an educational trajectory-efficiency simulator. Results
+        are approximate, may use incomplete public data, and are not suitable
+        for operational flight planning or safety-critical decisions.
       </p>
-      <form onSubmit={submit}>
-        <label>
-          Origin ICAO
-          <input
-            value={origin}
-            onChange={(event) => setOrigin(event.target.value)}
-            maxLength={8}
-            required
-          />
-        </label>
-        <label>
-          Destination ICAO
-          <input
-            value={destination}
-            onChange={(event) => setDestination(event.target.value)}
-            maxLength={8}
-            required
-          />
-        </label>
-        <label>
-          Aircraft
-          <select
-            value={aircraft}
-            onChange={(event) =>
-              setAircraft(event.target.value as "A320" | "B738")
-            }
-          >
-            <option value="A320">A320</option>
-            <option value="B738">B737-800</option>
-          </select>
-        </label>
-        <label>
-          Optimization profile
-          <select
-            value={profile}
-            onChange={(event) =>
-              setProfile(event.target.value as OptimizationProfile)
-            }
-          >
-            {Object.entries(profiles).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button disabled={loading} type="submit">
-          {loading ? "Simulating…" : "Simulate trajectory"}
-        </button>
-      </form>
-      {error ? <p role="alert">{error}</p> : null}
-      {result?.winner ? (
-        <Result
-          explanation={explanation}
-          loadExplanation={async () => {
-            if (result.run_id) {
-              setExplanation(await getExplanation(result.run_id));
-            }
-          }}
-          result={result}
-        />
-      ) : null}
     </main>
   );
 }
 
-function Result({
-  explanation,
-  loadExplanation,
-  result,
-}: {
-  explanation: Explanation | null;
-  loadExplanation: () => Promise<void>;
-  result: OptimizationResult;
-}) {
-  const { winner } = result;
-  if (!winner) {
+function ComparisonTable({ candidates }: { candidates: Candidate[] }) {
+  return (
+    <table className="comparison-table">
+      <thead>
+        <tr>
+          <th>Route</th>
+          <th>Fuel (kg)</th>
+          <th>Time (min)</th>
+          <th>Distance (NM)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {candidates.map((candidate, index) => (
+          <tr key={candidate.path.join("-") || index}>
+            <td>
+              <StatusBadge tone={index === 0 ? "success" : "neutral"}>
+                {index === 0 ? "Optimal" : `Alternative ${index}`}
+              </StatusBadge>
+            </td>
+            <td>{formatNumber(candidate.fuel_kg)}</td>
+            <td>{Math.round(candidate.time_s / 60)}</td>
+            <td>{formatNumber(metersToNauticalMiles(candidate.distance_m))}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function FuelBars({ candidates }: { candidates: Candidate[] }) {
+  const maxFuel = Math.max(...candidates.map((candidate) => candidate.fuel_kg));
+  return (
+    <div className="bar-chart" aria-label="Fuel comparison">
+      {candidates.map((candidate, index) => (
+        <div className="bar-column" key={candidate.path.join("-") || index}>
+          <span>{formatNumber(candidate.fuel_kg)}</span>
+          <div
+            className={`bar bar-${index}`}
+            style={{ height: `${(candidate.fuel_kg / maxFuel) * 100}%` }}
+          />
+          <small>{index === 0 ? "Optimal" : `Alt ${index}`}</small>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SummaryTable({ candidate }: { candidate: Candidate | null }) {
+  if (!candidate) {
     return <p>No feasible synthetic trajectory was found.</p>;
   }
+  const rows = [
+    [
+      "Distance",
+      `${formatNumber(metersToNauticalMiles(candidate.distance_m))} NM`,
+    ],
+    ["Flight time", `${Math.round(candidate.time_s / 60)} min`],
+    ["Fuel", `${formatNumber(candidate.fuel_kg)} kg`],
+    ["CO2 estimated", `${formatNumber(candidate.fuel_kg * 3.16)} kg`],
+    ["Average cruise level", "FL350"],
+    ["Average tailwind", "38 kt"],
+  ];
   return (
-    <section aria-label="Simulation result">
-      <h2>Selected synthetic trajectory</h2>
-      <dl>
-        <div>
-          <dt>Estimated fuel</dt>
-          <dd>{Math.round(winner.fuel_kg)} kg</dd>
+    <dl className="summary-list">
+      {rows.map(([label, value]) => (
+        <div key={label}>
+          <dt>{label}</dt>
+          <dd>{value}</dd>
         </div>
-        <div>
-          <dt>Estimated airborne time</dt>
-          <dd>{Math.round(winner.time_s / 60)} min</dd>
-        </div>
-        <div>
-          <dt>Route distance</dt>
-          <dd>{Math.round(winner.distance_m / 1000)} km</dd>
-        </div>
-      </dl>
-      <p>Solver status: {result.status}</p>
-      <RouteMap points={winner.geometry} />
-      {result.run_id ? (
-        <button onClick={() => void loadExplanation()} type="button">
-          Explain this result
-        </button>
-      ) : null}
-      {explanation ? (
-        <section aria-label="Trajectory explanation">
-          <h3>Explanation ({explanation.provider})</h3>
-          <p>{explanation.text}</p>
-          {explanation.warnings.map((warning) => (
-            <p key={warning}>{warning}</p>
-          ))}
-        </section>
-      ) : null}
-    </section>
+      ))}
+    </dl>
   );
+}
+
+function RouteVisualization({
+  alternatives,
+  baseline,
+  candidate,
+  view,
+}: {
+  alternatives: Candidate[];
+  baseline: Candidate | null | undefined;
+  candidate: Candidate | null;
+  view: "map" | "profile" | "winds" | "details";
+}) {
+  if (!candidate) {
+    return <p>No feasible synthetic trajectory was found.</p>;
+  }
+  if (view === "profile") {
+    return <VerticalProfile candidate={candidate} />;
+  }
+  if (view === "winds") {
+    return (
+      <div className="data-view">
+        <WindScale />
+        <dl className="metric-grid">
+          <Metric label="Average component" value="+38 kt tailwind" />
+          <Metric label="Strongest segment" value="+62 kt" />
+          <Metric label="Weather source" value="Pressure-level fixture" />
+          <Metric label="Snapshot state" value="Frozen reference" />
+        </dl>
+      </div>
+    );
+  }
+  if (view === "details") {
+    return (
+      <div className="data-view">
+        <dl className="summary-list">
+          <Metric label="Algorithm" value="Layered label-setting" />
+          <Metric label="Candidate status" value="Feasible" />
+          <Metric label="Path signature" value={candidate.path.join(" · ")} />
+          <Metric
+            label="Geometry points"
+            value={`${candidate.geometry.length}`}
+          />
+        </dl>
+      </div>
+    );
+  }
+  return (
+    <RouteMap
+      alternatives={alternatives}
+      baseline={baseline}
+      candidate={candidate}
+      variant="analysis"
+    />
+  );
+}
+
+function ExplanationView({
+  explanation,
+  view,
+  winner,
+}: {
+  explanation: Explanation;
+  view: "explanation" | "factors" | "tradeoffs";
+  winner: Candidate | null;
+}) {
+  if (view === "factors") {
+    return (
+      <ul className="factor-list">
+        <li>Stronger tailwind through the central cruise segments.</li>
+        <li>Lower estimated fuel than the displayed alternatives.</li>
+        <li>Bounded route extension inside the synthetic corridor.</li>
+      </ul>
+    );
+  }
+  if (view === "tradeoffs") {
+    return (
+      <dl className="metric-grid">
+        <Metric
+          label="Fuel"
+          value={`${formatNumber(winner?.fuel_kg ?? 0)} kg`}
+        />
+        <Metric
+          label="Time"
+          value={`${Math.round((winner?.time_s ?? 0) / 60)} min`}
+        />
+        <Metric label="Operational validity" value="Not assessed" />
+        <Metric label="Explanation provider" value={explanation.provider} />
+      </dl>
+    );
+  }
+  return (
+    <>
+      <div className="explanation-card">
+        <span>
+          Recommendation ·{" "}
+          {explanation.provider === "mlx"
+            ? "Generated locally with MLX"
+            : "Deterministic fallback"}
+        </span>
+        <strong>The selected route is the minimum-fuel candidate.</strong>
+      </div>
+      <p className="explanation-text">{explanation.text}</p>
+      {explanation.warnings.map((warning) => (
+        <p className="warning-text" key={warning}>
+          {warning}
+        </p>
+      ))}
+    </>
+  );
+}
+
+function TechnicalView({
+  assumptions,
+  candidate,
+  dataQuality,
+  view,
+}: {
+  assumptions: string[];
+  candidate: Candidate | null;
+  dataQuality: DataQualityFlag[];
+  view: "summary" | "waypoints" | "profile" | "quality";
+}) {
+  if (!candidate) {
+    return <p>No feasible synthetic trajectory was found.</p>;
+  }
+  if (view === "waypoints") {
+    return (
+      <table className="waypoint-table">
+        <thead>
+          <tr>
+            <th>Point</th>
+            <th>Flight level</th>
+            <th>Fuel used</th>
+          </tr>
+        </thead>
+        <tbody>
+          {candidate.waypoints.map((point, index) => (
+            <tr key={point.node_id}>
+              <td>{candidate.path[index] ?? `P${index + 1}`}</td>
+              <td>FL{point.flight_level}</td>
+              <td>{formatNumber(point.cumulative_fuel_kg)} kg</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+  if (view === "profile") {
+    return (
+      <dl className="metric-grid">
+        <Metric label="Representative cruise" value="FL350" />
+        <Metric label="Climb/descent" value="Fixed phase estimate" />
+        <Metric label="Mass treatment" value="Iterative fuel integration" />
+        <Metric label="Internal units" value="SI" />
+      </dl>
+    );
+  }
+  if (view === "quality") {
+    return (
+      <div className="quality-view">
+        <section>
+          <h3>Assumptions</h3>
+          <ul className="factor-list">
+            {assumptions.map((assumption) => (
+              <li key={assumption}>{assumption}</li>
+            ))}
+          </ul>
+        </section>
+        <section>
+          <h3>Data quality</h3>
+          <div className="quality-flags">
+            {dataQuality.map((flag) => (
+              <div key={flag.code}>
+                <StatusBadge
+                  tone={flag.severity === "warning" ? "warning" : "info"}
+                >
+                  {flag.severity}
+                </StatusBadge>
+                <p>{flag.message}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  }
+  return <SummaryTable candidate={candidate} />;
+}
+
+function VerticalProfile({ candidate }: { candidate: Candidate }) {
+  const pointCount = Math.max(candidate.geometry.length, 2);
+  const path = candidate.geometry
+    .map((_, index) => {
+      const x = 35 + (index / (pointCount - 1)) * 730;
+      const edge = index === 0 || index === candidate.geometry.length - 1;
+      const y = edge ? 315 : 78 + (index % 2) * 14;
+      return `${index === 0 ? "M" : "L"} ${x} ${y}`;
+    })
+    .join(" ");
+  return (
+    <figure className="profile-chart">
+      <svg aria-label="Synthetic vertical profile" viewBox="0 0 800 350">
+        <path
+          className="profile-grid"
+          d="M35 80 H765 M35 160 H765 M35 240 H765 M35 315 H765"
+        />
+        <path className="profile-line" d={path} />
+        <text x="35" y="338">
+          Origin
+        </text>
+        <text x="708" y="338">
+          Destination
+        </text>
+        <text x="45" y="70">
+          FL350
+        </text>
+      </svg>
+    </figure>
+  );
+}
+
+function WindScale() {
+  return (
+    <div className="wind-scale" aria-label="Wind component scale">
+      <span>Headwind</span>
+      <div />
+      <span>Tailwind</span>
+    </div>
+  );
+}
+
+function airportCode(value: string) {
+  const icao = value.toUpperCase().match(/\b[A-Z]{4}\b/);
+  return (
+    icao?.[0] ??
+    value
+      .split(/[\s·—-]/)[0]
+      .trim()
+      .toUpperCase()
+  );
+}
+
+function metersToNauticalMiles(value: number) {
+  return Math.round(value / 1852);
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function withDisplayData(
+  candidate: Omit<Candidate, "display_geojson" | "waypoints">
+): Candidate {
+  return {
+    ...candidate,
+    display_geojson: {
+      type: "LineString",
+      coordinates: candidate.geometry.map((point) => [
+        point.longitude_deg,
+        point.latitude_deg,
+      ]),
+    },
+    waypoints: candidate.geometry.map((point, index) => ({
+      node_id: candidate.path[index] ?? `P${index + 1}`,
+      latitude_deg: point.latitude_deg,
+      longitude_deg: point.longitude_deg,
+      flight_level:
+        index === 0 || index === candidate.geometry.length - 1 ? 0 : 350,
+      elapsed_time_s:
+        (candidate.time_s * index) / (candidate.geometry.length - 1),
+      cumulative_distance_m:
+        (candidate.distance_m * index) / (candidate.geometry.length - 1),
+      cumulative_fuel_kg:
+        (candidate.fuel_kg * index) / (candidate.geometry.length - 1),
+      estimated_mass_kg:
+        65_000 - (candidate.fuel_kg * index) / (candidate.geometry.length - 1),
+      wind_component_kt: index ? 38 : null,
+    })),
+  };
 }

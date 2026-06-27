@@ -6,14 +6,21 @@ describe("createOptimization", () => {
   it("returns a typed API response", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          status: "optimal",
-          winner: null,
-          alternatives: [],
-        }),
-      })
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            algorithm_version: "test",
+            solver_termination_reason: "optimal",
+            status: "optimal",
+            winner: null,
+            alternatives: [],
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        )
+      )
     );
 
     const result = await createOptimization({
