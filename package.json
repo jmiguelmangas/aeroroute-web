@@ -21,6 +21,7 @@
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
     "@tanstack/react-query": "^5.101.1",
+    "@turf/great-circle": "^7.3.5",
     "@vitejs/plugin-react": "latest",
     "lucide-react": "^1.21.0",
     "maplibre-gl": "^5.24.0",

@@ -44,6 +44,8 @@ const meta = {
     alternatives: [],
     baseline: null,
     candidate: route,
+    destinationLabel: "JFK",
+    originLabel: "MAD",
     variant: "analysis",
   },
 } satisfies Meta<typeof RouteMap>;

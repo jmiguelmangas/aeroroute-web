@@ -154,6 +154,8 @@ export function RunDetailPage() {
                 alternatives={result.alternatives}
                 baseline={result.baseline}
                 candidate={winner}
+                destinationLabel={request?.destination_icao}
+                originLabel={request?.origin_icao}
               />
             </Panel>
           ) : null}

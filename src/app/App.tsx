@@ -168,6 +168,10 @@ function DashboardPage() {
   const origin = useWatch({ control, name: "origin" });
   const destination = useWatch({ control, name: "destination" });
   const [result, setResult] = useState<OptimizationResult>(demoResult);
+  const [endpointLabels, setEndpointLabels] = useState({
+    destination: "JFK",
+    origin: "MAD",
+  });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [explanation, setExplanation] = useState<Explanation>(demoExplanation);
@@ -199,6 +203,10 @@ function DashboardPage() {
         profile: values.profile,
       });
       setResult(apiResult);
+      setEndpointLabels({
+        destination: airportDisplayCode(values.destination),
+        origin: airportDisplayCode(values.origin),
+      });
       setExplanation(demoExplanation);
     } catch (submissionError) {
       setError(
@@ -323,6 +331,8 @@ function DashboardPage() {
               alternatives={result.alternatives}
               baseline={result.baseline}
               candidate={winner}
+              destinationLabel={endpointLabels.destination}
+              originLabel={endpointLabels.origin}
               variant="overview"
             />
           </div>
@@ -361,6 +371,8 @@ function DashboardPage() {
             alternatives={result.alternatives}
             baseline={result.baseline}
             view={routeView}
+            destinationLabel={endpointLabels.destination}
+            originLabel={endpointLabels.origin}
           />
         </Panel>
 
@@ -506,11 +518,15 @@ function RouteVisualization({
   alternatives,
   baseline,
   candidate,
+  destinationLabel,
+  originLabel,
   view,
 }: {
   alternatives: Candidate[];
   baseline: Candidate | null | undefined;
   candidate: Candidate | null;
+  destinationLabel: string;
+  originLabel: string;
   view: "map" | "profile" | "winds" | "details";
 }) {
   if (!candidate) {
@@ -552,6 +568,8 @@ function RouteVisualization({
       alternatives={alternatives}
       baseline={baseline}
       candidate={candidate}
+      destinationLabel={destinationLabel}
+      originLabel={originLabel}
       variant="analysis"
     />
   );
@@ -798,6 +816,13 @@ function airportCode(value: string) {
       .trim()
       .toUpperCase()
   );
+}
+
+function airportDisplayCode(value: string) {
+  return value
+    .split(/[\s·—-]/)[0]
+    .trim()
+    .toUpperCase();
 }
 
 function defaultDepartureTime() {

@@ -8,7 +8,11 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
 
 import { Candidate, RoutePoint, WaypointDetail } from "../api/client";
-import { splitAtAntimeridian } from "./routeGeometry";
+import {
+  geodesicSegments,
+  splitAtAntimeridian,
+  unwrapLongitudes,
+} from "./routeGeometry";
 
 const EMPTY_COLLECTION = {
   type: "FeatureCollection" as const,
@@ -47,11 +51,15 @@ export function RouteMap({
   alternatives = [],
   baseline,
   candidate,
+  destinationLabel = "Destination",
+  originLabel = "Origin",
   variant = "analysis",
 }: {
   alternatives?: Candidate[];
   baseline?: Candidate | null;
   candidate: Candidate | null;
+  destinationLabel?: string;
+  originLabel?: string;
   variant?: "analysis" | "overview";
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -93,7 +101,11 @@ export function RouteMap({
     map.on("load", () => {
       if (mapRef.current !== map) return;
       addRouteLayers(map);
-      setMapRevision((revision) => revision + 1);
+      map.once("idle", () => {
+        if (mapRef.current === map) {
+          setMapRevision((revision) => revision + 1);
+        }
+      });
     });
     map.on("error", (event) => {
       if (String(event.error).includes("tile")) setBasemapUnavailable(true);
@@ -140,10 +152,10 @@ export function RouteMap({
     const origin = candidate.geometry[0];
     const destination = candidate.geometry[candidate.geometry.length - 1];
     if (origin)
-      markersRef.current.push(addAirportMarker(map, origin, "Origin"));
+      markersRef.current.push(addAirportMarker(map, origin, originLabel));
     if (destination) {
       markersRef.current.push(
-        addAirportMarker(map, destination, "Destination")
+        addAirportMarker(map, destination, destinationLabel)
       );
     }
     if (layers.waypoints) {
@@ -161,7 +173,7 @@ export function RouteMap({
         );
       });
     }
-  }, [candidate, layers.waypoints, mapRevision]);
+  }, [candidate, destinationLabel, layers.waypoints, mapRevision, originLabel]);
 
   function toggleLayer(layer: keyof typeof layers) {
     setLayers((current) => ({ ...current, [layer]: !current[layer] }));
@@ -322,18 +334,17 @@ function routesCollection(routes: Candidate[]) {
   return {
     type: "FeatureCollection" as const,
     features: routes.flatMap((route, routeIndex) =>
-      candidateSegments(route).map((segment, segmentIndex) => ({
-        type: "Feature" as const,
-        id: `${routeIndex}-${segmentIndex}`,
-        properties: { routeIndex },
-        geometry: {
-          type: "LineString" as const,
-          coordinates: segment.map((point) => [
-            point.longitude_deg,
-            point.latitude_deg,
-          ]),
-        },
-      }))
+      candidateSegments(route)
+        .flatMap((segment) => geodesicSegments(segment))
+        .map((coordinates, segmentIndex) => ({
+          type: "Feature" as const,
+          id: `${routeIndex}-${segmentIndex}`,
+          properties: { routeIndex },
+          geometry: {
+            type: "LineString" as const,
+            coordinates,
+          },
+        }))
     ),
   };
 }
@@ -373,6 +384,8 @@ function addAirportMarker(
 ) {
   const element = document.createElement("div");
   element.className = "airport-marker";
+  element.ariaLabel = `${label} airport`;
+  element.title = label;
   element.innerHTML = `<span aria-hidden="true"></span><strong>${label}</strong>`;
   return new maplibregl.Marker({ element })
     .setLngLat([point.longitude_deg, point.latitude_deg])
@@ -386,9 +399,7 @@ function fitRoute(
 ) {
   if (!candidate?.geometry.length) return;
   const bounds = new LngLatBounds();
-  candidate.geometry.forEach((point) =>
-    bounds.extend([point.longitude_deg, point.latitude_deg])
-  );
+  unwrapLongitudes(candidate.geometry).forEach((point) => bounds.extend(point));
   map.fitBounds(bounds, {
     duration: 0,
     maxZoom: 5,
