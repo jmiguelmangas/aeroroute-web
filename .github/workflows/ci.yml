@@ -12,8 +12,17 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aeroroute-web
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: aeroroute-web
+      - uses: actions/checkout@v4
+        with:
+          repository: jmiguelmangas/aeroroute-contracts
+          path: aeroroute-contracts
       - uses: pnpm/action-setup@v4
         with:
           version: 11
@@ -21,6 +30,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: aeroroute-web/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm check

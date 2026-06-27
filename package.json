@@ -10,11 +10,13 @@
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "e2e": "playwright test",
+    "e2e:real": "playwright test --config playwright.real.config.ts",
     "format": "prettier --write .",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm build-storybook",
+    "check": "pnpm lint && pnpm typecheck && pnpm check:api && pnpm test && pnpm build && pnpm build-storybook",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build --output-dir storybook-static",
-    "generate:api": "openapi-typescript ../aeroroute-contracts/openapi/aeroroute-v1.json -o src/api/generated/schema.ts"
+    "generate:api": "openapi-typescript ../aeroroute-contracts/openapi/aeroroute-v1.json -o src/api/generated/schema.ts",
+    "check:api": "node scripts/check-generated-client.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

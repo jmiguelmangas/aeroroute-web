@@ -146,16 +146,18 @@ test("searches routes and shows the dashboard result", async ({ page }) => {
 
   const analysis = page.getByRole("region", { name: "Route analysis" });
   await analysis.getByRole("button", { name: "Map layers" }).click();
-  await expect(analysis.getByLabel("Waypoints")).toBeChecked();
+  await expect(analysis.getByLabel("Synthetic nodes")).toBeChecked();
   await analysis
-    .getByRole("button", { name: "Waypoint 1, flight level 350" })
+    .getByRole("button", {
+      name: "SYN-1, synthetic node, flight level 350",
+    })
     .click();
   await expect(analysis.getByText("9,000 kg fuel")).toBeVisible();
 
   await page.getByRole("tab", { name: "Vertical profile" }).click();
   await expect(page.getByLabel("Synthetic vertical profile")).toBeVisible();
 
-  await page.getByRole("tab", { name: "Waypoints" }).click();
+  await page.getByRole("tab", { name: "Synthetic nodes" }).click();
   await expect(
     page.getByRole("columnheader", { name: "Flight level" })
   ).toBeVisible();
