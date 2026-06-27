@@ -139,7 +139,7 @@ export function RunDetailPage() {
                     value={`${formatNumber(winner.fuel_kg)} kg`}
                   />
                   <Detail
-                    label="Waypoints"
+                    label="Synthetic nodes"
                     value={`${winner.waypoints.length}`}
                   />
                 </dl>

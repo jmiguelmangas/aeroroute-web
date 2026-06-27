@@ -394,7 +394,7 @@ function DashboardPage() {
             items={[
               { id: "summary", label: "Summary" },
               { id: "costs", label: "Costs" },
-              { id: "waypoints", label: "Waypoints" },
+              { id: "waypoints", label: "Synthetic nodes" },
               { id: "profile", label: "Profile" },
               { id: "quality", label: "Data quality" },
             ]}
@@ -627,7 +627,8 @@ function TechnicalView({
       <table className="waypoint-table">
         <thead>
           <tr>
-            <th>Point</th>
+            <th>Synthetic node</th>
+            <th>Coordinates</th>
             <th>Flight level</th>
             <th>Fuel used</th>
           </tr>
@@ -635,7 +636,11 @@ function TechnicalView({
         <tbody>
           {candidate.waypoints.map((point, index) => (
             <tr key={point.node_id}>
-              <td>{candidate.path[index] ?? `P${index + 1}`}</td>
+              <td>{point.display_name ?? `SYN-${index + 1}`}</td>
+              <td>
+                {point.latitude_deg.toFixed(2)},{" "}
+                {point.longitude_deg.toFixed(2)}
+              </td>
               <td>FL{point.flight_level}</td>
               <td>{formatNumber(point.cumulative_fuel_kg)} kg</td>
             </tr>
@@ -824,6 +829,8 @@ function withDisplayData(
     },
     waypoints: candidate.geometry.map((point, index) => ({
       node_id: candidate.path[index] ?? `P${index + 1}`,
+      display_name: `SYN-${String(index + 1).padStart(2, "0")}`,
+      kind: "synthetic",
       latitude_deg: point.latitude_deg,
       longitude_deg: point.longitude_deg,
       flight_level:

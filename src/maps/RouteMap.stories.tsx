@@ -62,6 +62,8 @@ function waypoint(
 ) {
   return {
     node_id: nodeId,
+    display_name: `SYN-${nodeId}`,
+    kind: "synthetic" as const,
     latitude_deg: latitude,
     longitude_deg: longitude,
     flight_level: flightLevel,

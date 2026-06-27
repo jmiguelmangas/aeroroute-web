@@ -327,12 +327,23 @@ export interface components {
       cumulative_distance_m: number;
       /** Cumulative Fuel Kg */
       cumulative_fuel_kg: number;
+      /**
+       * Display Name
+       * @default Synthetic node
+       */
+      display_name: string;
       /** Elapsed Time S */
       elapsed_time_s: number;
       /** Estimated Mass Kg */
       estimated_mass_kg: number;
       /** Flight Level */
       flight_level: number;
+      /**
+       * Kind
+       * @default synthetic
+       * @constant
+       */
+      kind: "synthetic";
       /** Latitude Deg */
       latitude_deg: number;
       /** Longitude Deg */

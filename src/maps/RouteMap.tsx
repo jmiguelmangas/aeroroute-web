@@ -37,6 +37,8 @@ export function RouteMap({
     ...(candidate ? [{ className: "route-line optimal", candidate }] : []),
   ];
   const waypoints = candidate?.waypoints ?? [];
+  const origin = candidate?.geometry[0];
+  const destination = candidate?.geometry[candidate.geometry.length - 1];
 
   function toggleLayer(layer: keyof typeof layers) {
     setLayers((current) => ({ ...current, [layer]: !current[layer] }));
@@ -109,14 +111,10 @@ export function RouteMap({
             />
           ))
         )}
-        <MapPoint
-          label="JFK"
-          point={{ latitude_deg: 40.64, longitude_deg: -73.78 }}
-        />
-        <MapPoint
-          label="MAD"
-          point={{ latitude_deg: 40.47, longitude_deg: -3.56 }}
-        />
+        {origin ? <MapPoint label="Origin" point={origin} /> : null}
+        {destination ? (
+          <MapPoint label="Destination" point={destination} />
+        ) : null}
       </svg>
 
       {layers.waypoints
@@ -124,7 +122,7 @@ export function RouteMap({
             const position = projectPercent(waypoint);
             return (
               <button
-                aria-label={`Waypoint ${index + 1}, flight level ${waypoint.flight_level}`}
+                aria-label={`${waypoint.display_name ?? `SYN-${index + 1}`}, synthetic node, flight level ${waypoint.flight_level}`}
                 className="waypoint-marker"
                 key={waypoint.node_id}
                 onClick={() => setSelectedWaypoint(waypoint)}
@@ -169,16 +167,21 @@ export function RouteMap({
       ) : null}
 
       {selectedWaypoint ? (
-        <aside className="waypoint-detail" aria-label="Waypoint details">
+        <aside className="waypoint-detail" aria-label="Synthetic node details">
           <button
-            aria-label="Close waypoint details"
+            aria-label="Close synthetic node details"
             onClick={() => setSelectedWaypoint(null)}
             title="Close"
             type="button"
           >
             <X aria-hidden="true" size={16} />
           </button>
-          <strong>FL{selectedWaypoint.flight_level}</strong>
+          <strong>{selectedWaypoint.display_name ?? "Synthetic node"}</strong>
+          <span>
+            {selectedWaypoint.latitude_deg.toFixed(2)},{" "}
+            {selectedWaypoint.longitude_deg.toFixed(2)}
+          </span>
+          <span>FL{selectedWaypoint.flight_level}</span>
           <span>{formatDuration(selectedWaypoint.elapsed_time_s)} elapsed</span>
           <span>
             {Math.round(selectedWaypoint.cumulative_fuel_kg).toLocaleString()}{" "}
@@ -259,6 +262,7 @@ function projectPercent(point: RoutePoint) {
 }
 
 function layerLabel(key: string) {
+  if (key === "waypoints") return "Synthetic nodes";
   return key.charAt(0).toUpperCase() + key.slice(1);
 }
 
