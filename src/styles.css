@@ -1055,6 +1055,12 @@ h1 span,
   box-shadow: 0 0 0 4px rgba(242, 193, 79, 0.18);
 }
 
+.waypoint-marker.sid {
+  border-color: #ffffff;
+  background: #2d8fe5;
+  box-shadow: 0 0 0 4px rgba(45, 143, 229, 0.24);
+}
+
 .waypoint-marker:hover,
 .waypoint-marker:focus-visible {
   width: 16px;

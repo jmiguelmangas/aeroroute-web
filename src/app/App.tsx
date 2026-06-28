@@ -725,9 +725,16 @@ function TechnicalView({
               <td>
                 {point.inbound_via ? (
                   <StatusBadge
-                    tone={point.airway_validated ? "success" : "neutral"}
+                    tone={
+                      point.procedure_type
+                        ? "info"
+                        : point.airway_validated
+                          ? "success"
+                          : "neutral"
+                    }
                   >
                     {point.inbound_via}
+                    {point.runway ? ` · RWY ${point.runway}` : ""}
                   </StatusBadge>
                 ) : (
                   "—"

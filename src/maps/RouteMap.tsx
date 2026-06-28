@@ -202,7 +202,7 @@ export function RouteMap({
       candidate.waypoints.slice(1, -1).forEach((waypoint, index) => {
         const element = document.createElement("button");
         element.type = "button";
-        element.className = `waypoint-marker ${waypoint.kind}`;
+        element.className = `waypoint-marker ${waypoint.kind} ${waypoint.procedure_type?.toLowerCase() ?? ""}`;
         element.title = `${waypoint.display_name ?? `SYN-${index + 1}`} · FL${waypoint.flight_level}`;
         element.ariaLabel = `${waypoint.display_name ?? `SYN-${index + 1}`}, ${waypointKindLabel(waypoint.kind)}, flight level ${waypoint.flight_level}`;
         element.addEventListener("click", () => setSelectedWaypoint(waypoint));
@@ -384,6 +384,15 @@ export function RouteMap({
               {selectedWaypoint.airway_validated
                 ? " · AIRAC confirmed"
                 : " · direct segment"}
+            </span>
+          ) : null}
+          {selectedWaypoint.procedure_type ? (
+            <span>
+              {selectedWaypoint.procedure_type}{" "}
+              {selectedWaypoint.procedure_identifier}
+              {selectedWaypoint.runway
+                ? ` · runway family ${selectedWaypoint.runway}`
+                : ""}
             </span>
           ) : null}
         </aside>

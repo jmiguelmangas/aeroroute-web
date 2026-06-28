@@ -381,6 +381,12 @@ export interface components {
       inbound_via?: string | null;
       /** Airway Validated */
       airway_validated?: boolean | null;
+      /** Procedure Type */
+      procedure_type?: ("SID" | "STAR") | null;
+      /** Procedure Identifier */
+      procedure_identifier?: string | null;
+      /** Runway */
+      runway?: string | null;
     };
     /** WindFieldResponse */
     WindFieldResponse: {
