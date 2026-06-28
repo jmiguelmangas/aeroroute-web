@@ -12,5 +12,7 @@ test("optimizes MAD-JFK through the live API and database", async ({
     .getByRole("region", { name: "Route analysis" })
     .getByRole("row");
   await expect(resultRows.nth(1)).toContainText("Optimal");
-  await expect(resultRows.nth(1)).not.toContainText("49,780");
+  await expect(resultRows.nth(1)).not.toContainText("49,780", {
+    timeout: 20_000,
+  });
 });

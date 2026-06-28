@@ -157,6 +157,11 @@ export function RouteMap({
       layers.winds ? "visible" : "none"
     );
     map.setLayoutProperty(
+      "navigation-line",
+      "visibility",
+      layers.waypoints && hasNavigationRoute(candidate) ? "visible" : "none"
+    );
+    map.setLayoutProperty(
       "wind-field-heat",
       "visibility",
       layers.weather && hasWindField(windField) ? "visible" : "none"
@@ -165,6 +170,7 @@ export function RouteMap({
     setSourceData(map, "alternative-routes", routesCollection(alternatives));
     setSourceData(map, "optimal-route", routeCollection(candidate));
     setSourceData(map, "wind-node-data", windCollection(candidate));
+    setSourceData(map, "navigation-route", navigationCollection(candidate));
     setSourceData(map, "wind-field-data", windFieldCollection(windField));
     fitRoute(map, candidate, variant);
   }, [
@@ -394,6 +400,9 @@ export function RouteMap({
         {layers.winds && hasWindSamples(candidate) ? (
           <span className="legend-winds">Winds at nodes</span>
         ) : null}
+        {layers.waypoints && hasNavigationRoute(candidate) ? (
+          <span className="legend-navigation">AIRAC route</span>
+        ) : null}
         {layers.weather && hasWindField(windField) ? (
           <span className="legend-wind-field">Wind field (kt)</span>
         ) : null}
@@ -410,6 +419,10 @@ function addRouteLayers(map: maplibregl.Map) {
   });
   map.addSource("optimal-route", { type: "geojson", data: EMPTY_COLLECTION });
   map.addSource("wind-node-data", { type: "geojson", data: EMPTY_COLLECTION });
+  map.addSource("navigation-route", {
+    type: "geojson",
+    data: EMPTY_COLLECTION,
+  });
   map.addSource("wind-field-data", {
     type: "geojson",
     data: EMPTY_COLLECTION,
@@ -500,6 +513,17 @@ function addRouteLayers(map: maplibregl.Map) {
     },
   });
   map.addLayer({
+    id: "navigation-line",
+    type: "line",
+    source: "navigation-route",
+    paint: {
+      "line-color": "#35b8e8",
+      "line-dasharray": [1.5, 1.2],
+      "line-opacity": 0.95,
+      "line-width": 3,
+    },
+  });
+  map.addLayer({
     id: "wind-nodes",
     type: "circle",
     source: "wind-node-data",
@@ -574,6 +598,25 @@ function windCollection(candidate?: Candidate | null) {
   };
 }
 
+function navigationCollection(candidate?: Candidate | null) {
+  const points = (candidate?.waypoints ?? [])
+    .filter((waypoint) => waypoint.kind !== "synthetic")
+    .map((waypoint) => ({
+      latitude_deg: waypoint.latitude_deg,
+      longitude_deg: waypoint.longitude_deg,
+    }));
+  return {
+    type: "FeatureCollection" as const,
+    features: splitAtAntimeridian(points).flatMap((segment) =>
+      geodesicSegments(segment).map((coordinates) => ({
+        type: "Feature" as const,
+        properties: {},
+        geometry: { type: "LineString" as const, coordinates },
+      }))
+    ),
+  };
+}
+
 function windFieldCollection(windField?: WindField | null) {
   return {
     type: "FeatureCollection" as const,
@@ -596,6 +639,12 @@ function hasWindSamples(candidate?: Candidate | null) {
 
 function hasWindField(windField?: WindField | null) {
   return Boolean(windField?.samples.length);
+}
+
+function hasNavigationRoute(candidate?: Candidate | null) {
+  return (candidate?.waypoints ?? []).some(
+    (waypoint) => waypoint.kind === "navigation_fix"
+  );
 }
 
 function candidateSegments(candidate: Candidate): RoutePoint[][] {

@@ -901,6 +901,10 @@ h1 span,
   background: linear-gradient(90deg, #4850be, #1fa9c9, #5bc45f, #f0ae34);
 }
 
+.map-legend .legend-navigation::before {
+  border-top: 3px dashed #35b8e8;
+}
+
 .map-layers-button {
   position: absolute;
   z-index: 8;
