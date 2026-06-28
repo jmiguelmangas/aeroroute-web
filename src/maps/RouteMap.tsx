@@ -1,4 +1,4 @@
-import { Layers3, X } from "lucide-react";
+import { Layers3, Maximize2, Minimize2, X } from "lucide-react";
 import maplibregl, {
   GeoJSONSource,
   LngLatBounds,
@@ -76,6 +76,7 @@ export function RouteMap({
   const [mapRevision, setMapRevision] = useState(0);
   const [basemapUnavailable, setBasemapUnavailable] = useState(false);
   const [layersOpen, setLayersOpen] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const [selectedWaypoint, setSelectedWaypoint] =
     useState<WaypointDetail | null>(null);
   const [layers, setLayers] = useState({
@@ -185,6 +186,29 @@ export function RouteMap({
 
   useEffect(() => {
     const map = mapRef.current;
+    const frame = window.requestAnimationFrame(() => {
+      map?.resize();
+      if (map && candidate) fitRoute(map, candidate, variant);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [candidate, fullscreen, variant]);
+
+  useEffect(() => {
+    if (!fullscreen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFullscreen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [fullscreen]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
     if (!map || mapRevision === 0 || !candidate) return;
@@ -277,7 +301,16 @@ export function RouteMap({
   }
 
   return (
-    <figure className={`route-map ${variant}`}>
+    <figure
+      aria-label={fullscreen ? "Fullscreen interactive route map" : undefined}
+      className={[
+        "route-map",
+        variant,
+        fullscreen ? "route-map--fullscreen" : null,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <div
         aria-label="Synthetic trajectory map"
         className="route-map__canvas"
@@ -289,6 +322,21 @@ export function RouteMap({
           Live basemap unavailable
         </div>
       ) : null}
+
+      <button
+        aria-label={fullscreen ? "Exit fullscreen map" : "Open fullscreen map"}
+        aria-pressed={fullscreen}
+        className="map-fullscreen-button"
+        onClick={() => setFullscreen((active) => !active)}
+        title={fullscreen ? "Exit fullscreen" : "Fullscreen map"}
+        type="button"
+      >
+        {fullscreen ? (
+          <Minimize2 aria-hidden="true" size={18} />
+        ) : (
+          <Maximize2 aria-hidden="true" size={18} />
+        )}
+      </button>
 
       <button
         aria-expanded={layersOpen}

@@ -21,15 +21,32 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/v1/optimizations/{run_id}/explanation": {
+  "/api/v1/airports/{icao}/procedures": {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get Explanation */
-    get: operations["get_explanation_api_v1_optimizations__run_id__explanation_get"];
+    /** List Procedures */
+    get: operations["list_procedures_api_v1_airports__icao__procedures_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/airports/{icao}/runways": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Runways */
+    get: operations["list_runways_api_v1_airports__icao__runways_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -65,6 +82,23 @@ export interface paths {
     };
     /** Get Optimization */
     get: operations["get_optimization_api_v1_optimizations__run_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/optimizations/{run_id}/explanation": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Explanation */
+    get: operations["get_explanation_api_v1_optimizations__run_id__explanation_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -139,52 +173,52 @@ export interface components {
     };
     /** AirportResponse */
     AirportResponse: {
-      /** Icao Code */
-      icao_code: string;
       /** Iata Code */
       iata_code: string | null;
-      /** Name */
-      name: string;
-      /** Municipality */
-      municipality: string | null;
+      /** Icao Code */
+      icao_code: string;
       /** Iso Country */
       iso_country: string | null;
       /** Latitude Deg */
       latitude_deg: number;
       /** Longitude Deg */
       longitude_deg: number;
+      /** Municipality */
+      municipality: string | null;
+      /** Name */
+      name: string;
     };
     /** CandidateResponse */
     CandidateResponse: {
-      /** Path */
-      path: string[];
-      /** Geometry */
-      geometry: components["schemas"]["RoutePoint"][];
+      display_geojson: components["schemas"]["GeoJsonGeometry"];
       /** Distance M */
       distance_m: number;
-      /** Time S */
-      time_s: number;
+      fuel_breakdown?: components["schemas"]["FuelBreakdown"] | null;
       /** Fuel Kg */
       fuel_kg: number;
+      /** Geometry */
+      geometry: components["schemas"]["RoutePoint"][];
+      objective_breakdown?: components["schemas"]["ObjectiveBreakdown"] | null;
+      /** Path */
+      path: string[];
       /** Score */
       score: number;
-      display_geojson: components["schemas"]["GeoJsonGeometry"];
+      /** Time S */
+      time_s: number;
       /** Waypoints */
       waypoints: components["schemas"]["WaypointDetail"][];
-      fuel_breakdown?: components["schemas"]["FuelBreakdown"] | null;
-      objective_breakdown?: components["schemas"]["ObjectiveBreakdown"] | null;
     };
     /** DataQualityFlag */
     DataQualityFlag: {
       /** Code */
       code: string;
+      /** Message */
+      message: string;
       /**
        * Severity
        * @enum {string}
        */
       severity: "info" | "warning";
-      /** Message */
-      message: string;
     };
     /** ExplanationResponse */
     ExplanationResponse: {
@@ -197,14 +231,14 @@ export interface components {
     };
     /** FuelBreakdown */
     FuelBreakdown: {
-      /** Modeled Trip Fuel Kg */
-      modeled_trip_fuel_kg: number;
       /** Cruise Fuel Kg */
       cruise_fuel_kg: number;
       /** Fixed Climb Descent Fuel Kg */
       fixed_climb_descent_fuel_kg: number;
       /** Mass Assumption Fuel Kg */
       mass_assumption_fuel_kg: number;
+      /** Modeled Trip Fuel Kg */
+      modeled_trip_fuel_kg: number;
       /**
        * Reserves Optimized
        * @default false
@@ -213,26 +247,26 @@ export interface components {
     };
     /** FuelIterationSummary */
     FuelIterationSummary: {
-      /** Initial Mass Kg */
-      initial_mass_kg: number;
-      /** Trip Fuel Kg */
-      trip_fuel_kg: number;
-      /** Iterations */
-      iterations: number;
       /** Converged */
       converged: boolean;
+      /** Initial Mass Kg */
+      initial_mass_kg: number;
+      /** Iterations */
+      iterations: number;
+      /** Trip Fuel Kg */
+      trip_fuel_kg: number;
       /** Warning Code */
       warning_code?: string | null;
     };
     /** GeoJsonGeometry */
     GeoJsonGeometry: {
+      /** Coordinates */
+      coordinates: number[][] | number[][][];
       /**
        * Type
        * @enum {string}
        */
       type: "LineString" | "MultiLineString";
-      /** Coordinates */
-      coordinates: number[][] | number[][][];
     };
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -241,55 +275,59 @@ export interface components {
     };
     /** ObjectiveBreakdown */
     ObjectiveBreakdown: {
-      /** Fuel Delta */
-      fuel_delta: number;
-      /** Time Delta */
-      time_delta: number;
-      /** Route Extension */
-      route_extension: number;
-      /** Fuel Weight */
-      fuel_weight: number;
-      /** Time Weight */
-      time_weight: number;
+      /** Extension Component */
+      extension_component: number;
       /** Extension Weight */
       extension_weight: number;
       /** Fuel Component */
       fuel_component: number;
+      /** Fuel Delta */
+      fuel_delta: number;
+      /** Fuel Weight */
+      fuel_weight: number;
+      /** Route Extension */
+      route_extension: number;
       /** Time Component */
       time_component: number;
-      /** Extension Component */
-      extension_component: number;
+      /** Time Delta */
+      time_delta: number;
+      /** Time Weight */
+      time_weight: number;
       /** Total Score */
       total_score: number;
     };
     /** OptimizationHistoryItem */
     OptimizationHistoryItem: {
+      /** Aircraft Type */
+      aircraft_type: string;
+      /** Destination Icao */
+      destination_icao: string;
+      /** Origin Icao */
+      origin_icao: string;
+      /** Profile */
+      profile: string;
       /** Run Id */
       run_id: string;
       /** Status */
       status: string;
-      /** Origin Icao */
-      origin_icao: string;
-      /** Destination Icao */
-      destination_icao: string;
-      /** Aircraft Type */
-      aircraft_type: string;
-      /** Profile */
-      profile: string;
     };
     /** OptimizationRequest */
     OptimizationRequest: {
-      /** Origin Icao */
-      origin_icao: string;
-      /** Destination Icao */
-      destination_icao: string;
-      /** Departure Time Utc */
-      departure_time_utc?: string | null;
       /**
        * Aircraft Type
        * @enum {string}
        */
       aircraft_type: "A320" | "B738" | "B77W" | "B788" | "A359" | "A388";
+      /** Arrival Runway */
+      arrival_runway?: string | null;
+      /** Departure Runway */
+      departure_runway?: string | null;
+      /** Departure Time Utc */
+      departure_time_utc?: string | null;
+      /** Destination Icao */
+      destination_icao: string;
+      /** Origin Icao */
+      origin_icao: string;
       /**
        * Profile
        * @default balanced
@@ -299,24 +337,59 @@ export interface components {
     };
     /** OptimizationResponse */
     OptimizationResponse: {
-      /** Run Id */
-      run_id?: string | null;
-      /** Status */
-      status: string;
       /** Algorithm Version */
       algorithm_version: string;
-      winner: components["schemas"]["CandidateResponse"] | null;
       /** Alternatives */
       alternatives: components["schemas"]["CandidateResponse"][];
-      /** Solver Termination Reason */
-      solver_termination_reason: string;
-      baseline?: components["schemas"]["CandidateResponse"] | null;
       /** Assumptions */
       assumptions?: string[];
+      baseline?: components["schemas"]["CandidateResponse"] | null;
       /** Data Quality */
       data_quality?: components["schemas"]["DataQualityFlag"][];
-      request?: components["schemas"]["OptimizationRequest"] | null;
       fuel_iteration?: components["schemas"]["FuelIterationSummary"] | null;
+      request?: components["schemas"]["OptimizationRequest"] | null;
+      /** Run Id */
+      run_id?: string | null;
+      /** Solver Termination Reason */
+      solver_termination_reason: string;
+      /** Status */
+      status: string;
+      terminal_selection?: components["schemas"]["TerminalSelection"] | null;
+      winner: components["schemas"]["CandidateResponse"] | null;
+    };
+    /** ProcedureOption */
+    ProcedureOption: {
+      /** Airac Cycle */
+      airac_cycle?: string | null;
+      /** Entry Fix */
+      entry_fix: string;
+      /** Exit Fix */
+      exit_fix: string;
+      /** Identifier */
+      identifier: string;
+      /** Point Count */
+      point_count: number;
+      /**
+       * Procedure Type
+       * @enum {string}
+       */
+      procedure_type: "SID" | "STAR";
+      /** Runway Family */
+      runway_family: string;
+    };
+    /** ProcedureOptionsResponse */
+    ProcedureOptionsResponse: {
+      /** Airport Icao */
+      airport_icao: string;
+      /** Items */
+      items: components["schemas"]["ProcedureOption"][];
+      /**
+       * Procedure Type
+       * @enum {string}
+       */
+      procedure_type: "SID" | "STAR";
+      /** Runway */
+      runway?: string | null;
     };
     /** RoutePoint */
     RoutePoint: {
@@ -325,28 +398,120 @@ export interface components {
       /** Longitude Deg */
       longitude_deg: number;
     };
+    /** RunwayOption */
+    RunwayOption: {
+      /** Bearing Deg */
+      bearing_deg: number;
+      /**
+       * Compatible Procedures
+       * @default 0
+       */
+      compatible_procedures: number;
+      /** Crosswind Component Kt */
+      crosswind_component_kt?: number | null;
+      /** Headwind Component Kt */
+      headwind_component_kt?: number | null;
+      /** Identifier */
+      identifier: string;
+      /** Length Ft */
+      length_ft: number;
+      /**
+       * Suggested
+       * @default false
+       */
+      suggested: boolean;
+      /** Surface */
+      surface?: string | null;
+      /** Width Ft */
+      width_ft?: number | null;
+    };
+    /** RunwayOptionsResponse */
+    RunwayOptionsResponse: {
+      /** Airac Cycle */
+      airac_cycle?: string | null;
+      /** Airport Icao */
+      airport_icao: string;
+      /** Items */
+      items: components["schemas"]["RunwayOption"][];
+      /**
+       * Procedure Type
+       * @enum {string}
+       */
+      procedure_type: "SID" | "STAR";
+      /** Recommendation Basis */
+      recommendation_basis?: string[];
+      /** Suggested Runway */
+      suggested_runway?: string | null;
+      /** Surface Wind Direction Deg */
+      surface_wind_direction_deg?: number | null;
+      /** Surface Wind Source */
+      surface_wind_source?: string | null;
+      /** Surface Wind Speed Kt */
+      surface_wind_speed_kt?: number | null;
+    };
+    /** TerminalSelection */
+    TerminalSelection: {
+      /** Airac Cycle */
+      airac_cycle?: string | null;
+      /** Arrival Runway */
+      arrival_runway?: string | null;
+      /**
+       * Arrival Runway Suggested
+       * @default false
+       */
+      arrival_runway_suggested: boolean;
+      /** Departure Runway */
+      departure_runway?: string | null;
+      /**
+       * Departure Runway Suggested
+       * @default false
+       */
+      departure_runway_suggested: boolean;
+      /** Rationale */
+      rationale?: string[];
+      /** Sid Identifier */
+      sid_identifier?: string | null;
+      /** Star Identifier */
+      star_identifier?: string | null;
+    };
     /** ValidationError */
     ValidationError: {
+      /** Context */
+      ctx?: Record<string, never>;
+      /** Input */
+      input?: unknown;
       /** Location */
       loc: (string | number)[];
       /** Message */
       msg: string;
       /** Error Type */
       type: string;
-      /** Input */
-      input?: unknown;
-      /** Context */
-      ctx?: Record<string, never>;
     };
     /** WaypointDetail */
     WaypointDetail: {
-      /** Node Id */
-      node_id: string;
+      /** Airac Cycle */
+      airac_cycle?: string | null;
+      /** Airac Region */
+      airac_region?: string | null;
+      /** Airway Validated */
+      airway_validated?: boolean | null;
+      /** Cumulative Distance M */
+      cumulative_distance_m: number;
+      /** Cumulative Fuel Kg */
+      cumulative_fuel_kg: number;
       /**
        * Display Name
        * @default Synthetic node
        */
       display_name: string;
+      /** Elapsed Time S */
+      elapsed_time_s: number;
+      /** Estimated Mass Kg */
+      estimated_mass_kg: number;
+      /** Flight Level */
+      flight_level: number;
+      /** Inbound Via */
+      inbound_via?: string | null;
       /**
        * Kind
        * @default synthetic
@@ -357,67 +522,51 @@ export interface components {
       latitude_deg: number;
       /** Longitude Deg */
       longitude_deg: number;
-      /** Flight Level */
-      flight_level: number;
-      /** Elapsed Time S */
-      elapsed_time_s: number;
-      /** Cumulative Distance M */
-      cumulative_distance_m: number;
-      /** Cumulative Fuel Kg */
-      cumulative_fuel_kg: number;
-      /** Estimated Mass Kg */
-      estimated_mass_kg: number;
-      /** Wind Component Kt */
-      wind_component_kt?: number | null;
       /** Navigation Source */
       navigation_source?: string | null;
-      /** Airac Cycle */
-      airac_cycle?: string | null;
-      /** Airac Region */
-      airac_region?: string | null;
-      /** Snap Distance Nm */
-      snap_distance_nm?: number | null;
-      /** Inbound Via */
-      inbound_via?: string | null;
-      /** Airway Validated */
-      airway_validated?: boolean | null;
-      /** Procedure Type */
-      procedure_type?: ("SID" | "STAR") | null;
+      /** Node Id */
+      node_id: string;
       /** Procedure Identifier */
       procedure_identifier?: string | null;
+      /** Procedure Type */
+      procedure_type?: ("SID" | "STAR") | null;
       /** Runway */
       runway?: string | null;
+      /** Snap Distance Nm */
+      snap_distance_nm?: number | null;
+      /** Wind Component Kt */
+      wind_component_kt?: number | null;
     };
     /** WindFieldResponse */
     WindFieldResponse: {
+      /** Flight Level */
+      flight_level: number;
+      /** Pressure Hpa */
+      pressure_hpa: number;
+      /** Samples */
+      samples: components["schemas"]["WindFieldSample"][];
+      /** Source */
+      source: string;
       /**
        * Valid At Utc
        * Format: date-time
        */
       valid_at_utc: string;
-      /** Flight Level */
-      flight_level: number;
-      /** Pressure Hpa */
-      pressure_hpa: number;
-      /** Source */
-      source: string;
-      /** Samples */
-      samples: components["schemas"]["WindFieldSample"][];
     };
     /** WindFieldSample */
     WindFieldSample: {
+      /** Direction Deg */
+      direction_deg: number;
+      /** East Kt */
+      east_kt: number;
       /** Latitude Deg */
       latitude_deg: number;
       /** Longitude Deg */
       longitude_deg: number;
-      /** East Kt */
-      east_kt: number;
       /** North Kt */
       north_kt: number;
       /** Speed Kt */
       speed_kt: number;
-      /** Direction Deg */
-      direction_deg: number;
     };
   };
   responses: never;
@@ -461,12 +610,15 @@ export interface operations {
       };
     };
   };
-  get_explanation_api_v1_optimizations__run_id__explanation_get: {
+  list_procedures_api_v1_airports__icao__procedures_get: {
     parameters: {
-      query?: never;
+      query: {
+        type: "SID" | "STAR";
+        runway?: string | null;
+      };
       header?: never;
       path: {
-        run_id: string;
+        icao: string;
       };
       cookie?: never;
     };
@@ -478,7 +630,41 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["ExplanationResponse"];
+          "application/json": components["schemas"]["ProcedureOptionsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_runways_api_v1_airports__icao__runways_get: {
+    parameters: {
+      query: {
+        procedure_type: "SID" | "STAR";
+        at_utc?: string | null;
+      };
+      header?: never;
+      path: {
+        icao: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RunwayOptionsResponse"];
         };
       };
       /** @description Validation Error */
@@ -563,6 +749,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["OptimizationResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_explanation_api_v1_optimizations__run_id__explanation_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExplanationResponse"];
         };
       };
       /** @description Validation Error */

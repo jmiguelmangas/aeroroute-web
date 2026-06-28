@@ -268,6 +268,25 @@ h1 span,
   font-size: 0.74rem;
 }
 
+.runway-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.runway-note {
+  margin-top: -8px;
+  color: #7f94aa;
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+.terminal-summary {
+  margin-top: 10px;
+  border-top: 1px solid rgba(157, 198, 255, 0.16);
+  padding-top: 8px;
+}
+
 .airport-combobox {
   position: relative;
 }
@@ -790,6 +809,16 @@ h1 span,
   inset: 0;
 }
 
+.route-map--fullscreen {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 0;
+  border-radius: 0;
+}
+
 .route-map .maplibregl-map {
   font: inherit;
 }
@@ -905,11 +934,11 @@ h1 span,
   border-top: 3px dashed #35b8e8;
 }
 
-.map-layers-button {
+.map-layers-button,
+.map-fullscreen-button {
   position: absolute;
   z-index: 8;
   top: 10px;
-  right: 14px;
   display: grid;
   width: 38px;
   height: 38px;
@@ -918,6 +947,14 @@ h1 span,
   border-radius: 5px;
   color: #eef7ff;
   background: rgba(2, 11, 21, 0.86);
+}
+
+.map-fullscreen-button {
+  right: 14px;
+}
+
+.map-layers-button {
+  right: 60px;
 }
 
 .map-layers {
@@ -1409,6 +1446,10 @@ h1 span,
   }
 
   .search-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .runway-fields {
     grid-template-columns: 1fr;
   }
 

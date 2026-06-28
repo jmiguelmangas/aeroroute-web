@@ -11,6 +11,8 @@ export type OptimizationHistoryItem =
 export type OptimizationRequest = components["schemas"]["OptimizationRequest"];
 export type OptimizationResult = components["schemas"]["OptimizationResponse"];
 export type RoutePoint = components["schemas"]["RoutePoint"];
+export type RunwayOptions = components["schemas"]["RunwayOptionsResponse"];
+export type TerminalSelection = components["schemas"]["TerminalSelection"];
 export type WaypointDetail = components["schemas"]["WaypointDetail"];
 export type WindField = components["schemas"]["WindFieldResponse"];
 export type OptimizationProfile = OptimizationRequest["profile"];
@@ -47,6 +49,21 @@ export async function searchAirports(query: string): Promise<Airport[]> {
   } catch {
     throw new Error("Airport catalogue unavailable.");
   }
+}
+
+export async function getRunwayOptions(
+  airportIcao: string,
+  procedureType: "SID" | "STAR",
+  atUtc?: string
+): Promise<RunwayOptions> {
+  const { data, error } = await api.GET("/api/v1/airports/{icao}/runways", {
+    params: {
+      path: { icao: airportIcao },
+      query: { procedure_type: procedureType, at_utc: atUtc },
+    },
+  });
+  if (error || !data) throw new Error("Runway options unavailable.");
+  return data;
 }
 
 export async function listOptimizations(): Promise<OptimizationHistoryItem[]> {

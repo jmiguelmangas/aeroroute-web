@@ -61,6 +61,81 @@ afterEach(() => {
 afterAll(() => server.close());
 
 describe("AeroRoute search", () => {
+  it("loads AIRAC runway choices and submits explicit selections", async () => {
+    let submitted: OptimizationRequest | undefined;
+    server.use(
+      http.get(
+        "http://localhost:8000/api/v1/airports/:icao/runways",
+        ({ params, request }) => {
+          const type = new URL(request.url).searchParams.get("procedure_type");
+          const departure = params.icao === "LEMD";
+          return HttpResponse.json({
+            airport_icao: params.icao,
+            procedure_type: type,
+            items: [
+              {
+                identifier: departure ? "32L" : "22L",
+                bearing_deg: departure ? 322 : 220,
+                length_ft: 12000,
+                width_ft: 197,
+                surface: "asphalt",
+                compatible_procedures: 4,
+                suggested: true,
+              },
+            ],
+            suggested_runway: departure ? "32L" : "22L",
+            airac_cycle: "2606",
+            recommendation_basis: ["Fixture recommendation"],
+            surface_wind_speed_kt: 18,
+            surface_wind_direction_deg: 320,
+            surface_wind_source: "open-meteo",
+          });
+        }
+      ),
+      http.post(
+        "http://localhost:8000/api/v1/optimizations",
+        async ({ request }) => {
+          submitted = (await request.json()) as OptimizationRequest;
+          return HttpResponse.json({
+            ...result,
+            terminal_selection: {
+              departure_runway: "32L",
+              departure_runway_suggested: false,
+              sid_identifier: "VAST2N",
+              arrival_runway: "22L",
+              arrival_runway_suggested: false,
+              star_identifier: "CAMR4",
+              airac_cycle: "2606",
+              rationale: [],
+            },
+          });
+        }
+      )
+    );
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.selectOptions(
+      await screen.findByRole("combobox", { name: "Departure runway" }),
+      "32L"
+    );
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Arrival runway" }),
+      "22L"
+    );
+    await user.click(screen.getByRole("button", { name: "Search routes" }));
+
+    await waitFor(() =>
+      expect(submitted).toMatchObject({
+        departure_runway: "32L",
+        arrival_runway: "22L",
+      })
+    );
+    expect(screen.getByText("RWY 32L · VAST2N")).toBeVisible();
+    expect(screen.getByText("RWY 22L · CAMR4")).toBeVisible();
+    expect(screen.getByText(/18 kt from 320°/)).toBeVisible();
+  });
+
   it("submits the selected widebody and renders the API result", async () => {
     let submitted: OptimizationRequest | undefined;
     server.use(

@@ -118,10 +118,51 @@ const optimizationResponse = {
     },
   ],
   solver_termination_reason: "optimal",
+  terminal_selection: {
+    departure_runway: "32L",
+    departure_runway_suggested: false,
+    sid_identifier: "VAST2N",
+    arrival_runway: "22L",
+    arrival_runway_suggested: false,
+    star_identifier: "CAMR4",
+    airac_cycle: "2606",
+    rationale: [],
+  },
 };
 
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/v1/airports/*/runways?**", async (route) => {
+    const url = new URL(route.request().url());
+    const airport = url.pathname.split("/").at(-2);
+    const departure = airport === "LEMD";
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        airport_icao: airport,
+        procedure_type: departure ? "SID" : "STAR",
+        items: [
+          {
+            identifier: departure ? "32L" : "22L",
+            bearing_deg: departure ? 322 : 220,
+            length_ft: 12000,
+            width_ft: 197,
+            surface: "asphalt",
+            compatible_procedures: 4,
+            suggested: true,
+          },
+        ],
+        suggested_runway: departure ? "32L" : "22L",
+        airac_cycle: "2606",
+        recommendation_basis: ["Fixture recommendation"],
+      }),
+    });
+  });
+});
+
 test("searches routes and shows the dashboard result", async ({ page }) => {
+  let submitted: Record<string, unknown> | null = null;
   await page.route("**/api/v1/optimizations", async (route) => {
+    submitted = route.request().postDataJSON();
     await route.fulfill({
       contentType: "application/json",
       body: JSON.stringify(optimizationResponse),
@@ -132,7 +173,18 @@ test("searches routes and shows the dashboard result", async ({ page }) => {
   await expect(
     page.getByText("AeroRoute MLX is an educational trajectory-efficiency")
   ).toBeVisible();
+  await page
+    .getByRole("combobox", { name: "Departure runway" })
+    .selectOption("32L");
+  await page
+    .getByRole("combobox", { name: "Arrival runway" })
+    .selectOption("22L");
   await page.getByRole("button", { name: "Search routes" }).click();
+
+  expect(submitted).toMatchObject({
+    departure_runway: "32L",
+    arrival_runway: "22L",
+  });
 
   await expect(
     page.getByRole("heading", { name: "2. Compare alternatives" })
@@ -145,6 +197,14 @@ test("searches routes and shows the dashboard result", async ({ page }) => {
   ).toBeVisible();
 
   const analysis = page.getByRole("region", { name: "Route analysis" });
+  await analysis.getByRole("button", { name: "Open fullscreen map" }).click();
+  await expect(
+    page.getByRole("figure", { name: "Fullscreen interactive route map" })
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(
+    analysis.getByRole("button", { name: "Open fullscreen map" })
+  ).toBeVisible();
   await analysis.getByRole("button", { name: "Map layers" }).click();
   await expect(analysis.getByLabel("Navigation points")).toBeChecked();
   await analysis
@@ -161,6 +221,10 @@ test("searches routes and shows the dashboard result", async ({ page }) => {
   await expect(
     page.getByRole("columnheader", { name: "Flight level" })
   ).toBeVisible();
+
+  await page.getByRole("tab", { name: "Summary" }).click();
+  await expect(page.getByText("RWY 32L · VAST2N")).toBeVisible();
+  await expect(page.getByText("RWY 22L · CAMR4")).toBeVisible();
 });
 
 test("keeps the reference dashboard visible when the API is degraded", async ({

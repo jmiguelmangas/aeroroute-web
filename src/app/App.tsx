@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
 import { BrainCircuit, Fuel, LockKeyhole, Search, Wind } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -11,9 +12,12 @@ import {
   DataQualityFlag,
   Explanation,
   getExplanation,
+  getRunwayOptions,
   getWindField,
   OptimizationProfile,
   OptimizationResult,
+  RunwayOptions,
+  TerminalSelection,
   WaypointDetail,
   WindField,
 } from "../api/client";
@@ -50,6 +54,8 @@ const searchSchema = z.object({
   aircraft: z.enum(["A320", "B738", "B77W", "B788", "A359", "A388"]),
   profile: z.enum(["minimum_fuel", "minimum_time", "balanced"]),
   departureTime: z.string().min(1, "Departure time is required."),
+  departureRunway: z.string(),
+  arrivalRunway: z.string(),
 });
 
 type SearchForm = z.infer<typeof searchSchema>;
@@ -172,10 +178,33 @@ function DashboardPage() {
       aircraft: "A320",
       profile: "minimum_fuel",
       departureTime: defaultDepartureTime(),
+      departureRunway: "",
+      arrivalRunway: "",
     },
   });
   const origin = useWatch({ control, name: "origin" });
   const destination = useWatch({ control, name: "destination" });
+  const departureTime = useWatch({ control, name: "departureTime" });
+  const runwayForecastTime = departureTime
+    ? new Date(departureTime).toISOString()
+    : undefined;
+  const originIcao = airportCode(origin);
+  const destinationIcao = airportCode(destination);
+  const departureRunways = useQuery({
+    queryKey: ["runways", originIcao, "SID", runwayForecastTime],
+    queryFn: () => getRunwayOptions(originIcao, "SID", runwayForecastTime),
+    enabled: originIcao.length === 4,
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+  const arrivalRunways = useQuery({
+    queryKey: ["runways", destinationIcao, "STAR", runwayForecastTime],
+    queryFn: () =>
+      getRunwayOptions(destinationIcao, "STAR", runwayForecastTime),
+    enabled: destinationIcao.length === 4,
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
   const [result, setResult] = useState<OptimizationResult>(demoResult);
   const [endpointLabels, setEndpointLabels] = useState({
     destination: "JFK",
@@ -212,6 +241,14 @@ function DashboardPage() {
       .catch(() => setWindField(null));
   }, []);
 
+  useEffect(() => {
+    setValue("departureRunway", "");
+  }, [originIcao, setValue]);
+
+  useEffect(() => {
+    setValue("arrivalRunway", "");
+  }, [destinationIcao, setValue]);
+
   async function submit(values: SearchForm) {
     setLoading(true);
     setError(null);
@@ -223,6 +260,14 @@ function DashboardPage() {
         departure_time_utc: departureUtc,
         aircraft_type: values.aircraft,
         profile: values.profile,
+        departure_runway:
+          values.departureRunway ||
+          departureRunways.data?.suggested_runway ||
+          undefined,
+        arrival_runway:
+          values.arrivalRunway ||
+          arrivalRunways.data?.suggested_runway ||
+          undefined,
       });
       setResult(apiResult);
       const windCandidate = apiResult.winner;
@@ -354,6 +399,43 @@ function DashboardPage() {
                 ))}
               </select>
             </Field>
+            <div className="runway-fields">
+              <Field label="Departure runway">
+                <select {...register("departureRunway")}>
+                  <option value="">
+                    {runwayAutoLabel(departureRunways.data?.suggested_runway)}
+                  </option>
+                  {departureRunways.data?.items.map((runway) => (
+                    <option key={runway.identifier} value={runway.identifier}>
+                      {runway.identifier} · {Math.round(runway.length_ft)} ft ·{" "}
+                      {runway.compatible_procedures} SID
+                      {runway.headwind_component_kt != null
+                        ? ` · ${runway.headwind_component_kt} kt HW`
+                        : ""}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Arrival runway">
+                <select {...register("arrivalRunway")}>
+                  <option value="">
+                    {runwayAutoLabel(arrivalRunways.data?.suggested_runway)}
+                  </option>
+                  {arrivalRunways.data?.items.map((runway) => (
+                    <option key={runway.identifier} value={runway.identifier}>
+                      {runway.identifier} · {Math.round(runway.length_ft)} ft ·{" "}
+                      {runway.compatible_procedures} STAR
+                      {runway.headwind_component_kt != null
+                        ? ` · ${runway.headwind_component_kt} kt HW`
+                        : ""}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <p className="runway-note">
+              {runwayRecommendationNote(departureRunways.data)}
+            </p>
             <Field label="Date and time (UTC)">
               <input type="datetime-local" {...register("departureTime")} />
             </Field>
@@ -458,6 +540,7 @@ function DashboardPage() {
             assumptions={result.assumptions ?? []}
             candidate={winner}
             dataQuality={result.data_quality ?? []}
+            terminalSelection={result.terminal_selection ?? null}
             view={technicalView}
           />
         </Panel>
@@ -695,11 +778,13 @@ function TechnicalView({
   assumptions,
   candidate,
   dataQuality,
+  terminalSelection,
   view,
 }: {
   assumptions: string[];
   candidate: Candidate | null;
   dataQuality: DataQualityFlag[];
+  terminalSelection: TerminalSelection | null;
   view: "summary" | "costs" | "waypoints" | "profile" | "quality";
 }) {
   if (!candidate) {
@@ -843,7 +928,35 @@ function TechnicalView({
       </div>
     );
   }
-  return <SummaryTable candidate={candidate} />;
+  return (
+    <>
+      <SummaryTable candidate={candidate} />
+      {terminalSelection ? (
+        <dl className="summary-list terminal-summary">
+          <DetailRow
+            label="Departure"
+            value={terminalDescription(
+              terminalSelection.departure_runway,
+              terminalSelection.sid_identifier,
+              terminalSelection.departure_runway_suggested
+            )}
+          />
+          <DetailRow
+            label="Arrival"
+            value={terminalDescription(
+              terminalSelection.arrival_runway,
+              terminalSelection.star_identifier,
+              terminalSelection.arrival_runway_suggested
+            )}
+          />
+          <DetailRow
+            label="Navigation cycle"
+            value={`AIRAC ${terminalSelection.airac_cycle ?? "current"}`}
+          />
+        </dl>
+      ) : null}
+    </>
+  );
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -913,6 +1026,29 @@ function airportDisplayCode(value: string) {
     .split(/[\s·—-]/)[0]
     .trim()
     .toUpperCase();
+}
+
+function runwayAutoLabel(suggested: string | null | undefined) {
+  return suggested ? `Auto · recommended ${suggested}` : "Auto · recommended";
+}
+
+function runwayRecommendationNote(options: RunwayOptions | undefined) {
+  if (
+    options?.surface_wind_speed_kt != null &&
+    options.surface_wind_direction_deg != null
+  ) {
+    return `AIRAC + ${options.surface_wind_source ?? "weather"}: ${Math.round(options.surface_wind_speed_kt)} kt from ${Math.round(options.surface_wind_direction_deg)}°. NOTAM, runway condition and ATC assignment are not applied.`;
+  }
+  return "AIRAC recommendation; surface wind unavailable. NOTAM, runway condition and ATC assignment are not applied.";
+}
+
+function terminalDescription(
+  runway: string | null | undefined,
+  procedure: string | null | undefined,
+  suggested: boolean
+) {
+  if (!runway && !procedure) return "DCT or unavailable";
+  return `${runway ? `RWY ${runway}` : "Runway unavailable"} · ${procedure ?? "DCT"}${suggested ? " · suggested" : ""}`;
 }
 
 function waypointKindLabel(kind: WaypointDetail["kind"]) {
