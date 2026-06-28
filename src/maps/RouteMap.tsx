@@ -75,6 +75,7 @@ export function RouteMap({
     alternatives: true,
     baseline: true,
     waypoints: variant === "analysis",
+    winds: variant === "analysis",
   });
 
   useEffect(() => {
@@ -137,9 +138,20 @@ export function RouteMap({
       "visibility",
       layers.alternatives && alternatives.length ? "visible" : "none"
     );
+    map.setLayoutProperty(
+      "wind-node-halos",
+      "visibility",
+      layers.winds ? "visible" : "none"
+    );
+    map.setLayoutProperty(
+      "wind-nodes",
+      "visibility",
+      layers.winds ? "visible" : "none"
+    );
     setSourceData(map, "baseline-route", routeCollection(baseline));
     setSourceData(map, "alternative-routes", routesCollection(alternatives));
     setSourceData(map, "optimal-route", routeCollection(candidate));
+    setSourceData(map, "wind-node-data", windCollection(candidate));
     fitRoute(map, candidate, variant);
   }, [alternatives, baseline, candidate, layers, mapRevision, variant]);
 
@@ -210,7 +222,8 @@ export function RouteMap({
             .filter(
               ([key]) =>
                 (key !== "baseline" || Boolean(baseline)) &&
-                (key !== "alternatives" || alternatives.length > 0)
+                (key !== "alternatives" || alternatives.length > 0) &&
+                (key !== "winds" || hasWindSamples(candidate))
             )
             .map(([key, checked]) => (
               <label key={key}>
@@ -266,6 +279,9 @@ export function RouteMap({
         {layers.alternatives && alternatives.length ? (
           <span>Alternatives</span>
         ) : null}
+        {layers.winds && hasWindSamples(candidate) ? (
+          <span className="legend-winds">Winds at nodes</span>
+        ) : null}
       </figcaption>
     </figure>
   );
@@ -278,6 +294,7 @@ function addRouteLayers(map: maplibregl.Map) {
     data: EMPTY_COLLECTION,
   });
   map.addSource("optimal-route", { type: "geojson", data: EMPTY_COLLECTION });
+  map.addSource("wind-node-data", { type: "geojson", data: EMPTY_COLLECTION });
   map.addLayer({
     id: "baseline-line",
     type: "line",
@@ -287,6 +304,36 @@ function addRouteLayers(map: maplibregl.Map) {
       "line-dasharray": [1.5, 3],
       "line-opacity": 0.8,
       "line-width": 2,
+    },
+  });
+  map.addLayer({
+    id: "wind-node-halos",
+    type: "circle",
+    source: "wind-node-data",
+    paint: {
+      "circle-color": "rgba(2, 11, 21, 0.72)",
+      "circle-radius": 11,
+    },
+  });
+  map.addLayer({
+    id: "wind-nodes",
+    type: "circle",
+    source: "wind-node-data",
+    paint: {
+      "circle-color": [
+        "interpolate",
+        ["linear"],
+        ["get", "windComponentKt"],
+        -80,
+        "#8156d8",
+        0,
+        "#39a7df",
+        80,
+        "#f2b84b",
+      ],
+      "circle-radius": 7,
+      "circle-stroke-color": "#e8f5ff",
+      "circle-stroke-width": 1.5,
     },
   });
   map.addLayer({
@@ -324,7 +371,7 @@ function addRouteLayers(map: maplibregl.Map) {
 function setSourceData(
   map: maplibregl.Map,
   sourceId: string,
-  data: ReturnType<typeof routesCollection>
+  data: Parameters<GeoJSONSource["setData"]>[0]
 ) {
   const source = map.getSource(sourceId);
   if (source) (source as GeoJSONSource).setData(data);
@@ -351,6 +398,32 @@ function routesCollection(routes: Candidate[]) {
 
 function routeCollection(candidate?: Candidate | null) {
   return routesCollection(candidate ? [candidate] : []);
+}
+
+function windCollection(candidate?: Candidate | null) {
+  return {
+    type: "FeatureCollection" as const,
+    features: (candidate?.waypoints ?? [])
+      .filter(
+        (waypoint) =>
+          waypoint.wind_component_kt !== null &&
+          waypoint.wind_component_kt !== undefined
+      )
+      .map((waypoint) => ({
+        type: "Feature" as const,
+        properties: { windComponentKt: waypoint.wind_component_kt },
+        geometry: {
+          type: "Point" as const,
+          coordinates: [waypoint.longitude_deg, waypoint.latitude_deg],
+        },
+      })),
+  };
+}
+
+function hasWindSamples(candidate?: Candidate | null) {
+  return (candidate?.waypoints ?? []).some(
+    (waypoint) => waypoint.wind_component_kt !== null
+  );
 }
 
 function candidateSegments(candidate: Candidate): RoutePoint[][] {
@@ -409,6 +482,7 @@ function fitRoute(
 
 function layerLabel(key: string) {
   if (key === "waypoints") return "Synthetic nodes";
+  if (key === "winds") return "Winds at nodes";
   return key.charAt(0).toUpperCase() + key.slice(1);
 }
 

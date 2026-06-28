@@ -27,6 +27,12 @@ import {
   Tabs,
 } from "../components";
 import { RouteMap } from "../maps/RouteMap";
+import {
+  averageCruiseLevel,
+  formatWindComponent,
+  weatherEvidence,
+  windStatistics,
+} from "../maps/routeMetrics";
 import { AboutPage, HistoryPage, RunDetailPage } from "../routes/pages";
 
 const profiles: Record<OptimizationProfile, string> = {
@@ -370,6 +376,7 @@ function DashboardPage() {
             candidate={winner}
             alternatives={result.alternatives}
             baseline={result.baseline}
+            dataQuality={result.data_quality ?? []}
             view={routeView}
             destinationLabel={endpointLabels.destination}
             originLabel={endpointLabels.origin}
@@ -491,6 +498,8 @@ function SummaryTable({ candidate }: { candidate: Candidate | null }) {
   if (!candidate) {
     return <p>No feasible synthetic trajectory was found.</p>;
   }
+  const wind = windStatistics(candidate);
+  const cruiseLevel = averageCruiseLevel(candidate);
   const rows = [
     [
       "Distance",
@@ -499,8 +508,8 @@ function SummaryTable({ candidate }: { candidate: Candidate | null }) {
     ["Flight time", `${Math.round(candidate.time_s / 60)} min`],
     ["Fuel", `${formatNumber(candidate.fuel_kg)} kg`],
     ["CO2 estimated", `${formatNumber(candidate.fuel_kg * 3.16)} kg`],
-    ["Average cruise level", "FL350"],
-    ["Average tailwind", "38 kt"],
+    ["Average cruise level", cruiseLevel ? `FL${cruiseLevel}` : "Unavailable"],
+    ["Average wind component", formatWindComponent(wind?.averageKt ?? null)],
   ];
   return (
     <dl className="summary-list">
@@ -518,6 +527,7 @@ function RouteVisualization({
   alternatives,
   baseline,
   candidate,
+  dataQuality,
   destinationLabel,
   originLabel,
   view,
@@ -525,6 +535,7 @@ function RouteVisualization({
   alternatives: Candidate[];
   baseline: Candidate | null | undefined;
   candidate: Candidate | null;
+  dataQuality: DataQualityFlag[];
   destinationLabel: string;
   originLabel: string;
   view: "map" | "profile" | "winds" | "details";
@@ -536,15 +547,31 @@ function RouteVisualization({
     return <VerticalProfile candidate={candidate} />;
   }
   if (view === "winds") {
+    const wind = windStatistics(candidate);
+    const weather = weatherEvidence(dataQuality);
     return (
       <div className="data-view">
-        <WindScale />
+        {wind ? <WindScale /> : null}
         <dl className="metric-grid">
-          <Metric label="Average component" value="+38 kt tailwind" />
-          <Metric label="Strongest segment" value="+62 kt" />
-          <Metric label="Weather source" value="Pressure-level fixture" />
-          <Metric label="Snapshot state" value="Frozen reference" />
+          <Metric
+            label="Average component"
+            value={formatWindComponent(wind?.averageKt ?? null)}
+          />
+          <Metric
+            label="Observed range"
+            value={
+              wind
+                ? `${formatWindComponent(wind.minimumKt)} to ${formatWindComponent(wind.maximumKt)}`
+                : "Unavailable"
+            }
+          />
+          <Metric
+            label="Samples"
+            value={wind ? `${wind.sampleCount} route nodes` : "0 route nodes"}
+          />
+          <Metric label="Snapshot state" value={weather.state} />
         </dl>
+        <p className="fine-print">{weather.source}</p>
       </div>
     );
   }
@@ -872,7 +899,8 @@ function withDisplayData(
         (candidate.fuel_kg * index) / (candidate.geometry.length - 1),
       estimated_mass_kg:
         65_000 - (candidate.fuel_kg * index) / (candidate.geometry.length - 1),
-      wind_component_kt: index ? 38 : null,
+      wind_component_kt:
+        index === 0 || index === candidate.geometry.length - 1 ? null : 38,
     })),
   };
 }
