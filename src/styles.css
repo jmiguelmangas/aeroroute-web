@@ -893,6 +893,14 @@ h1 span,
   background: #39a7df;
 }
 
+.map-legend .legend-wind-field::before {
+  width: 28px;
+  height: 8px;
+  border: 0;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #4850be, #1fa9c9, #5bc45f, #f0ae34);
+}
+
 .map-layers-button {
   position: absolute;
   z-index: 8;
@@ -968,11 +976,54 @@ h1 span,
 }
 
 .wind-marker.tailwind {
-  background: #a66f0d;
+  background: #875904;
 }
 
 .wind-marker.headwind {
   background: #7142bd;
+}
+
+.wind-field-marker {
+  position: relative;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  color: #fff;
+  filter: drop-shadow(0 1px 2px #00101f);
+  pointer-events: none;
+}
+
+.wind-field-marker span {
+  position: absolute;
+  width: 3px;
+  height: 24px;
+  border-radius: 2px;
+  background: #f4fbff;
+  transform-origin: center;
+}
+
+.wind-field-marker span::before {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  border-top: 3px solid #f4fbff;
+  border-left: 3px solid #f4fbff;
+  content: "";
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.wind-field-marker small {
+  position: absolute;
+  top: 27px;
+  padding: 1px 3px;
+  border-radius: 2px;
+  background: rgba(2, 11, 21, 0.78);
+  font-size: 0.56rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .waypoint-marker {

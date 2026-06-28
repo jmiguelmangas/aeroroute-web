@@ -7,7 +7,12 @@ import maplibregl, {
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
 
-import { Candidate, RoutePoint, WaypointDetail } from "../api/client";
+import {
+  Candidate,
+  RoutePoint,
+  WaypointDetail,
+  WindField,
+} from "../api/client";
 import {
   geodesicSegments,
   splitAtAntimeridian,
@@ -54,6 +59,7 @@ export function RouteMap({
   destinationLabel = "Destination",
   originLabel = "Origin",
   variant = "analysis",
+  windField,
 }: {
   alternatives?: Candidate[];
   baseline?: Candidate | null;
@@ -61,6 +67,7 @@ export function RouteMap({
   destinationLabel?: string;
   originLabel?: string;
   variant?: "analysis" | "overview";
+  windField?: WindField | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -76,6 +83,7 @@ export function RouteMap({
     baseline: true,
     waypoints: variant === "analysis",
     winds: variant === "analysis",
+    weather: true,
   });
 
   useEffect(() => {
@@ -148,12 +156,26 @@ export function RouteMap({
       "visibility",
       layers.winds ? "visible" : "none"
     );
+    map.setLayoutProperty(
+      "wind-field-heat",
+      "visibility",
+      layers.weather && hasWindField(windField) ? "visible" : "none"
+    );
     setSourceData(map, "baseline-route", routeCollection(baseline));
     setSourceData(map, "alternative-routes", routesCollection(alternatives));
     setSourceData(map, "optimal-route", routeCollection(candidate));
     setSourceData(map, "wind-node-data", windCollection(candidate));
+    setSourceData(map, "wind-field-data", windFieldCollection(windField));
     fitRoute(map, candidate, variant);
-  }, [alternatives, baseline, candidate, layers, mapRevision, variant]);
+  }, [
+    alternatives,
+    baseline,
+    candidate,
+    layers,
+    mapRevision,
+    variant,
+    windField,
+  ]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -214,13 +236,34 @@ export function RouteMap({
         );
       });
     }
+    if (layers.weather && windField) {
+      windField.samples.forEach((sample) => {
+        const element = document.createElement("div");
+        element.className = "wind-field-marker";
+        element.role = "img";
+        element.ariaLabel = `${Math.round(sample.speed_kt)} knot wind vector`;
+        element.title = `${Math.round(sample.speed_kt)} kt at ${Math.round(sample.direction_deg)} degrees`;
+        const arrow = document.createElement("span");
+        arrow.style.transform = `rotate(${sample.direction_deg}deg)`;
+        const speed = document.createElement("small");
+        speed.textContent = `${Math.round(sample.speed_kt)}`;
+        element.append(arrow, speed);
+        markersRef.current.push(
+          new maplibregl.Marker({ element })
+            .setLngLat([sample.longitude_deg, sample.latitude_deg])
+            .addTo(map)
+        );
+      });
+    }
   }, [
     candidate,
     destinationLabel,
     layers.waypoints,
     layers.winds,
+    layers.weather,
     mapRevision,
     originLabel,
+    windField,
   ]);
 
   function toggleLayer(layer: keyof typeof layers) {
@@ -264,7 +307,10 @@ export function RouteMap({
               <label key={key}>
                 <input
                   checked={checked}
-                  disabled={key === "winds" && !hasWindSamples(candidate)}
+                  disabled={
+                    (key === "winds" && !hasWindSamples(candidate)) ||
+                    (key === "weather" && !hasWindField(windField))
+                  }
                   onChange={() => toggleLayer(key as keyof typeof layers)}
                   type="checkbox"
                 />
@@ -272,7 +318,9 @@ export function RouteMap({
                   {layerLabel(key)}
                   {key === "winds" && !hasWindSamples(candidate)
                     ? " (unavailable)"
-                    : ""}
+                    : key === "weather" && !hasWindField(windField)
+                      ? " (unavailable)"
+                      : ""}
                 </span>
               </label>
             ))}
@@ -323,6 +371,9 @@ export function RouteMap({
         {layers.winds && hasWindSamples(candidate) ? (
           <span className="legend-winds">Winds at nodes</span>
         ) : null}
+        {layers.weather && hasWindField(windField) ? (
+          <span className="legend-wind-field">Wind field (kt)</span>
+        ) : null}
       </figcaption>
     </figure>
   );
@@ -336,6 +387,45 @@ function addRouteLayers(map: maplibregl.Map) {
   });
   map.addSource("optimal-route", { type: "geojson", data: EMPTY_COLLECTION });
   map.addSource("wind-node-data", { type: "geojson", data: EMPTY_COLLECTION });
+  map.addSource("wind-field-data", {
+    type: "geojson",
+    data: EMPTY_COLLECTION,
+  });
+  map.addLayer({
+    id: "wind-field-heat",
+    type: "heatmap",
+    source: "wind-field-data",
+    maxzoom: 7,
+    paint: {
+      "heatmap-weight": [
+        "interpolate",
+        ["linear"],
+        ["get", "speedKt"],
+        0,
+        0,
+        120,
+        1,
+      ],
+      "heatmap-intensity": 0.72,
+      "heatmap-radius": 62,
+      "heatmap-opacity": 0.46,
+      "heatmap-color": [
+        "interpolate",
+        ["linear"],
+        ["heatmap-density"],
+        0,
+        "rgba(39, 87, 170, 0)",
+        0.25,
+        "rgba(72, 78, 190, 0.52)",
+        0.5,
+        "rgba(31, 169, 201, 0.62)",
+        0.72,
+        "rgba(91, 196, 95, 0.68)",
+        1,
+        "rgba(240, 174, 52, 0.78)",
+      ],
+    },
+  });
   map.addLayer({
     id: "baseline-line",
     type: "line",
@@ -461,10 +551,28 @@ function windCollection(candidate?: Candidate | null) {
   };
 }
 
+function windFieldCollection(windField?: WindField | null) {
+  return {
+    type: "FeatureCollection" as const,
+    features: (windField?.samples ?? []).map((sample) => ({
+      type: "Feature" as const,
+      properties: { speedKt: sample.speed_kt },
+      geometry: {
+        type: "Point" as const,
+        coordinates: [sample.longitude_deg, sample.latitude_deg],
+      },
+    })),
+  };
+}
+
 function hasWindSamples(candidate?: Candidate | null) {
   return (candidate?.waypoints ?? []).some(
     (waypoint) => waypoint.wind_component_kt !== null
   );
+}
+
+function hasWindField(windField?: WindField | null) {
+  return Boolean(windField?.samples.length);
 }
 
 function candidateSegments(candidate: Candidate): RoutePoint[][] {
@@ -524,6 +632,7 @@ function fitRoute(
 function layerLabel(key: string) {
   if (key === "waypoints") return "Synthetic nodes";
   if (key === "winds") return "Winds at nodes";
+  if (key === "weather") return "Wind field";
   return key.charAt(0).toUpperCase() + key.slice(1);
 }
 

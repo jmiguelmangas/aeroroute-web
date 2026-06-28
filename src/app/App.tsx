@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BrainCircuit, Fuel, LockKeyhole, Search, Wind } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Link, Route, Routes } from "react-router-dom";
 import { z } from "zod";
@@ -11,8 +11,10 @@ import {
   DataQualityFlag,
   Explanation,
   getExplanation,
+  getWindField,
   OptimizationProfile,
   OptimizationResult,
+  WindField,
 } from "../api/client";
 import {
   Alert,
@@ -181,6 +183,7 @@ function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [explanation, setExplanation] = useState<Explanation>(demoExplanation);
+  const [windField, setWindField] = useState<WindField | null>(null);
   const [routeView, setRouteView] = useState<
     "map" | "profile" | "winds" | "details"
   >("map");
@@ -197,18 +200,28 @@ function DashboardPage() {
     [result.alternatives, winner]
   );
 
+  useEffect(() => {
+    const atUtc = new Date(defaultDepartureTime()).toISOString();
+    void getWindField(atUtc)
+      .then(setWindField)
+      .catch(() => setWindField(null));
+  }, []);
+
   async function submit(values: SearchForm) {
     setLoading(true);
     setError(null);
     try {
+      const departureUtc = new Date(values.departureTime).toISOString();
+      const windFieldRequest = getWindField(departureUtc).catch(() => null);
       const apiResult = await createOptimization({
         origin_icao: airportCode(values.origin),
         destination_icao: airportCode(values.destination),
-        departure_time_utc: new Date(values.departureTime).toISOString(),
+        departure_time_utc: departureUtc,
         aircraft_type: values.aircraft,
         profile: values.profile,
       });
       setResult(apiResult);
+      setWindField(await windFieldRequest);
       setEndpointLabels({
         destination: airportDisplayCode(values.destination),
         origin: airportDisplayCode(values.origin),
@@ -340,6 +353,7 @@ function DashboardPage() {
               destinationLabel={endpointLabels.destination}
               originLabel={endpointLabels.origin}
               variant="overview"
+              windField={windField}
             />
           </div>
         </section>
@@ -377,6 +391,7 @@ function DashboardPage() {
             alternatives={result.alternatives}
             baseline={result.baseline}
             dataQuality={result.data_quality ?? []}
+            windField={windField}
             view={routeView}
             destinationLabel={endpointLabels.destination}
             originLabel={endpointLabels.origin}
@@ -531,6 +546,7 @@ function RouteVisualization({
   destinationLabel,
   originLabel,
   view,
+  windField,
 }: {
   alternatives: Candidate[];
   baseline: Candidate | null | undefined;
@@ -539,6 +555,7 @@ function RouteVisualization({
   destinationLabel: string;
   originLabel: string;
   view: "map" | "profile" | "winds" | "details";
+  windField: WindField | null;
 }) {
   if (!candidate) {
     return <p>No feasible synthetic trajectory was found.</p>;
@@ -598,6 +615,7 @@ function RouteVisualization({
       destinationLabel={destinationLabel}
       originLabel={originLabel}
       variant="analysis"
+      windField={windField}
     />
   );
 }

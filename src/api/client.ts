@@ -12,6 +12,7 @@ export type OptimizationRequest = components["schemas"]["OptimizationRequest"];
 export type OptimizationResult = components["schemas"]["OptimizationResponse"];
 export type RoutePoint = components["schemas"]["RoutePoint"];
 export type WaypointDetail = components["schemas"]["WaypointDetail"];
+export type WindField = components["schemas"]["WindFieldResponse"];
 export type OptimizationProfile = OptimizationRequest["profile"];
 
 const apiUrl =
@@ -83,4 +84,15 @@ export async function getExplanation(runId: string): Promise<Explanation> {
   } catch {
     throw new Error("The explanation could not be loaded.");
   }
+}
+
+export async function getWindField(
+  atUtc: string,
+  flightLevel = 350
+): Promise<WindField> {
+  const { data, error } = await api.GET("/api/v1/weather/wind-field", {
+    params: { query: { at_utc: atUtc, flight_level: flightLevel } },
+  });
+  if (error || !data) throw new Error("Wind field unavailable.");
+  return data;
 }
