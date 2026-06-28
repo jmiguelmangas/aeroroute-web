@@ -984,7 +984,7 @@ h1 span,
 }
 
 .wind-field-marker {
-  position: relative;
+  position: absolute;
   display: grid;
   width: 34px;
   height: 34px;
