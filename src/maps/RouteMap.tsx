@@ -196,9 +196,9 @@ export function RouteMap({
       candidate.waypoints.slice(1, -1).forEach((waypoint, index) => {
         const element = document.createElement("button");
         element.type = "button";
-        element.className = "waypoint-marker";
-        element.title = `FL${waypoint.flight_level}`;
-        element.ariaLabel = `${waypoint.display_name ?? `SYN-${index + 1}`}, synthetic node, flight level ${waypoint.flight_level}`;
+        element.className = `waypoint-marker ${waypoint.kind}`;
+        element.title = `${waypoint.display_name ?? `SYN-${index + 1}`} · FL${waypoint.flight_level}`;
+        element.ariaLabel = `${waypoint.display_name ?? `SYN-${index + 1}`}, ${waypointKindLabel(waypoint.kind)}, flight level ${waypoint.flight_level}`;
         element.addEventListener("click", () => setSelectedWaypoint(waypoint));
         markersRef.current.push(
           new maplibregl.Marker({ element })
@@ -328,7 +328,10 @@ export function RouteMap({
       ) : null}
 
       {selectedWaypoint ? (
-        <aside className="waypoint-detail" aria-label="Synthetic node details">
+        <aside
+          className="waypoint-detail"
+          aria-label="Navigation point details"
+        >
           <button
             aria-label="Close synthetic node details"
             onClick={() => setSelectedWaypoint(null)}
@@ -338,6 +341,7 @@ export function RouteMap({
             <X aria-hidden="true" size={16} />
           </button>
           <strong>{selectedWaypoint.display_name ?? "Synthetic node"}</strong>
+          <span>{waypointKindLabel(selectedWaypoint.kind)}</span>
           <span>
             {selectedWaypoint.latitude_deg.toFixed(2)},{" "}
             {selectedWaypoint.longitude_deg.toFixed(2)}
@@ -357,6 +361,17 @@ export function RouteMap({
               ? "Wind unavailable"
               : `${selectedWaypoint.wind_component_kt} kt wind component`}
           </span>
+          {selectedWaypoint.navigation_source === "airac.net" ? (
+            <span>
+              AIRAC {selectedWaypoint.airac_cycle ?? "current"}
+              {selectedWaypoint.airac_region
+                ? ` · ${selectedWaypoint.airac_region}`
+                : ""}
+              {selectedWaypoint.snap_distance_nm != null
+                ? ` · ${selectedWaypoint.snap_distance_nm.toFixed(1)} NM adjustment`
+                : ""}
+            </span>
+          ) : null}
         </aside>
       ) : null}
 
@@ -630,10 +645,17 @@ function fitRoute(
 }
 
 function layerLabel(key: string) {
-  if (key === "waypoints") return "Synthetic nodes";
+  if (key === "waypoints") return "Navigation points";
   if (key === "winds") return "Winds at nodes";
   if (key === "weather") return "Wind field";
   return key.charAt(0).toUpperCase() + key.slice(1);
+}
+
+function waypointKindLabel(kind: WaypointDetail["kind"]) {
+  if (kind === "navigation_fix") return "AIRAC navigation fix";
+  if (kind === "oceanic_coordinate") return "Oceanic coordinate";
+  if (kind === "airport") return "Airport";
+  return "Solver node";
 }
 
 function formatDuration(seconds: number) {

@@ -350,9 +350,9 @@ export interface components {
       /**
        * Kind
        * @default synthetic
-       * @constant
+       * @enum {string}
        */
-      kind: "synthetic";
+      kind: "airport" | "navigation_fix" | "oceanic_coordinate" | "synthetic";
       /** Latitude Deg */
       latitude_deg: number;
       /** Longitude Deg */
@@ -369,6 +369,14 @@ export interface components {
       estimated_mass_kg: number;
       /** Wind Component Kt */
       wind_component_kt?: number | null;
+      /** Navigation Source */
+      navigation_source?: string | null;
+      /** Airac Cycle */
+      airac_cycle?: string | null;
+      /** Airac Region */
+      airac_region?: string | null;
+      /** Snap Distance Nm */
+      snap_distance_nm?: number | null;
     };
     /** WindFieldResponse */
     WindFieldResponse: {

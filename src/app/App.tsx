@@ -14,6 +14,7 @@ import {
   getWindField,
   OptimizationProfile,
   OptimizationResult,
+  WaypointDetail,
   WindField,
 } from "../api/client";
 import {
@@ -447,7 +448,7 @@ function DashboardPage() {
             items={[
               { id: "summary", label: "Summary" },
               { id: "costs", label: "Costs" },
-              { id: "waypoints", label: "Synthetic nodes" },
+              { id: "waypoints", label: "Navigation fixes" },
               { id: "profile", label: "Profile" },
               { id: "quality", label: "Data quality" },
             ]}
@@ -709,22 +710,32 @@ function TechnicalView({
       <table className="waypoint-table">
         <thead>
           <tr>
-            <th>Synthetic node</th>
+            <th>Navigation point</th>
+            <th>Type</th>
             <th>Coordinates</th>
             <th>Flight level</th>
-            <th>Fuel used</th>
+            <th>Source</th>
           </tr>
         </thead>
         <tbody>
           {candidate.waypoints.map((point, index) => (
             <tr key={point.node_id}>
               <td>{point.display_name ?? `SYN-${index + 1}`}</td>
+              <td>{waypointKindLabel(point.kind)}</td>
               <td>
                 {point.latitude_deg.toFixed(2)},{" "}
                 {point.longitude_deg.toFixed(2)}
               </td>
               <td>FL{point.flight_level}</td>
-              <td>{formatNumber(point.cumulative_fuel_kg)} kg</td>
+              <td>
+                {point.navigation_source === "airac.net"
+                  ? `AIRAC ${point.airac_cycle ?? "current"}${
+                      point.snap_distance_nm != null
+                        ? ` · ${point.snap_distance_nm.toFixed(1)} NM`
+                        : ""
+                    }`
+                  : (point.navigation_source ?? "Solver")}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -883,6 +894,13 @@ function airportDisplayCode(value: string) {
     .split(/[\s·—-]/)[0]
     .trim()
     .toUpperCase();
+}
+
+function waypointKindLabel(kind: WaypointDetail["kind"]) {
+  if (kind === "navigation_fix") return "AIRAC fix";
+  if (kind === "oceanic_coordinate") return "Oceanic coordinate";
+  if (kind === "airport") return "Airport";
+  return "Solver node";
 }
 
 function defaultDepartureTime() {

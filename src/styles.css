@@ -1036,6 +1036,21 @@ h1 span,
   box-shadow: 0 0 0 4px rgba(47, 137, 233, 0.2);
 }
 
+.waypoint-marker.navigation_fix {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  background: #70d33f;
+  box-shadow: 0 0 0 4px rgba(112, 211, 63, 0.2);
+  transform: rotate(45deg);
+}
+
+.waypoint-marker.oceanic_coordinate {
+  border-color: #f2c14f;
+  background: #172b3d;
+  box-shadow: 0 0 0 4px rgba(242, 193, 79, 0.18);
+}
+
 .waypoint-marker:hover,
 .waypoint-marker:focus-visible {
   width: 16px;
