@@ -935,6 +935,46 @@ h1 span,
   accent-color: #4ea0ff;
 }
 
+.map-layers input:disabled + span {
+  color: #8296aa;
+}
+
+.wind-marker {
+  display: grid;
+  min-width: 38px;
+  height: 24px;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  padding: 0 5px;
+  color: #fff;
+  background: #2589c5;
+  box-shadow: 0 3px 9px rgba(0, 0, 0, 0.72);
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.wind-marker::after {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  width: 2px;
+  height: 17px;
+  background: #fff;
+  content: "";
+  transform: translateX(-50%);
+}
+
+.wind-marker.tailwind {
+  background: #a66f0d;
+}
+
+.wind-marker.headwind {
+  background: #7142bd;
+}
+
 .waypoint-marker {
   width: 12px;
   height: 12px;

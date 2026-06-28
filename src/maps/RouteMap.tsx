@@ -185,7 +185,43 @@ export function RouteMap({
         );
       });
     }
-  }, [candidate, destinationLabel, layers.waypoints, mapRevision, originLabel]);
+    if (layers.winds) {
+      candidate.waypoints.forEach((waypoint) => {
+        if (
+          waypoint.wind_component_kt === null ||
+          waypoint.wind_component_kt === undefined
+        )
+          return;
+        const component = waypoint.wind_component_kt;
+        const element = document.createElement("div");
+        element.className = `wind-marker ${
+          component > 1 ? "tailwind" : component < -1 ? "headwind" : "calm"
+        }`;
+        element.role = "img";
+        element.ariaLabel = `${Math.abs(component)} knots ${
+          component > 1
+            ? "tailwind"
+            : component < -1
+              ? "headwind"
+              : "wind component"
+        } at ${waypoint.display_name ?? waypoint.node_id}`;
+        element.title = element.ariaLabel;
+        element.textContent = `${component > 0 ? "+" : ""}${Math.round(component)}`;
+        markersRef.current.push(
+          new maplibregl.Marker({ element, offset: [0, -20] })
+            .setLngLat([waypoint.longitude_deg, waypoint.latitude_deg])
+            .addTo(map)
+        );
+      });
+    }
+  }, [
+    candidate,
+    destinationLabel,
+    layers.waypoints,
+    layers.winds,
+    mapRevision,
+    originLabel,
+  ]);
 
   function toggleLayer(layer: keyof typeof layers) {
     setLayers((current) => ({ ...current, [layer]: !current[layer] }));
@@ -222,17 +258,22 @@ export function RouteMap({
             .filter(
               ([key]) =>
                 (key !== "baseline" || Boolean(baseline)) &&
-                (key !== "alternatives" || alternatives.length > 0) &&
-                (key !== "winds" || hasWindSamples(candidate))
+                (key !== "alternatives" || alternatives.length > 0)
             )
             .map(([key, checked]) => (
               <label key={key}>
                 <input
                   checked={checked}
+                  disabled={key === "winds" && !hasWindSamples(candidate)}
                   onChange={() => toggleLayer(key as keyof typeof layers)}
                   type="checkbox"
                 />
-                <span>{layerLabel(key)}</span>
+                <span>
+                  {layerLabel(key)}
+                  {key === "winds" && !hasWindSamples(candidate)
+                    ? " (unavailable)"
+                    : ""}
+                </span>
               </label>
             ))}
         </div>
@@ -307,36 +348,6 @@ function addRouteLayers(map: maplibregl.Map) {
     },
   });
   map.addLayer({
-    id: "wind-node-halos",
-    type: "circle",
-    source: "wind-node-data",
-    paint: {
-      "circle-color": "rgba(2, 11, 21, 0.72)",
-      "circle-radius": 11,
-    },
-  });
-  map.addLayer({
-    id: "wind-nodes",
-    type: "circle",
-    source: "wind-node-data",
-    paint: {
-      "circle-color": [
-        "interpolate",
-        ["linear"],
-        ["get", "windComponentKt"],
-        -80,
-        "#8156d8",
-        0,
-        "#39a7df",
-        80,
-        "#f2b84b",
-      ],
-      "circle-radius": 7,
-      "circle-stroke-color": "#e8f5ff",
-      "circle-stroke-width": 1.5,
-    },
-  });
-  map.addLayer({
     id: "alternative-lines",
     type: "line",
     source: "alternative-routes",
@@ -364,6 +375,36 @@ function addRouteLayers(map: maplibregl.Map) {
     paint: {
       "line-color": "#6ed43d",
       "line-width": 4,
+    },
+  });
+  map.addLayer({
+    id: "wind-node-halos",
+    type: "circle",
+    source: "wind-node-data",
+    paint: {
+      "circle-color": "rgba(2, 11, 21, 0.82)",
+      "circle-radius": 14,
+    },
+  });
+  map.addLayer({
+    id: "wind-nodes",
+    type: "circle",
+    source: "wind-node-data",
+    paint: {
+      "circle-color": [
+        "interpolate",
+        ["linear"],
+        ["get", "windComponentKt"],
+        -80,
+        "#8156d8",
+        0,
+        "#39a7df",
+        80,
+        "#f2b84b",
+      ],
+      "circle-radius": 9,
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-width": 2,
     },
   });
 }
