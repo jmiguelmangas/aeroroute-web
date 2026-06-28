@@ -377,6 +377,10 @@ export interface components {
       airac_region?: string | null;
       /** Snap Distance Nm */
       snap_distance_nm?: number | null;
+      /** Inbound Via */
+      inbound_via?: string | null;
+      /** Airway Validated */
+      airway_validated?: boolean | null;
     };
     /** WindFieldResponse */
     WindFieldResponse: {

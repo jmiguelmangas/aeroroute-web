@@ -711,6 +711,7 @@ function TechnicalView({
         <thead>
           <tr>
             <th>Navigation point</th>
+            <th>Via</th>
             <th>Type</th>
             <th>Coordinates</th>
             <th>Flight level</th>
@@ -721,6 +722,17 @@ function TechnicalView({
           {candidate.waypoints.map((point, index) => (
             <tr key={point.node_id}>
               <td>{point.display_name ?? `SYN-${index + 1}`}</td>
+              <td>
+                {point.inbound_via ? (
+                  <StatusBadge
+                    tone={point.airway_validated ? "success" : "neutral"}
+                  >
+                    {point.inbound_via}
+                  </StatusBadge>
+                ) : (
+                  "—"
+                )}
+              </td>
               <td>{waypointKindLabel(point.kind)}</td>
               <td>
                 {point.latitude_deg.toFixed(2)},{" "}

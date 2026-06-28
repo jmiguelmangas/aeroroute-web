@@ -372,6 +372,14 @@ export function RouteMap({
                 : ""}
             </span>
           ) : null}
+          {selectedWaypoint.inbound_via ? (
+            <span>
+              Inbound via {selectedWaypoint.inbound_via}
+              {selectedWaypoint.airway_validated
+                ? " · AIRAC confirmed"
+                : " · direct segment"}
+            </span>
+          ) : null}
         </aside>
       ) : null}
 
