@@ -202,7 +202,11 @@ function DashboardPage() {
 
   useEffect(() => {
     const atUtc = new Date(defaultDepartureTime()).toISOString();
-    void getWindField(atUtc)
+    const candidate = demoResult.winner;
+    const originPoint = candidate?.geometry[0];
+    const destinationPoint = candidate?.geometry.at(-1);
+    if (!originPoint || !destinationPoint) return;
+    void getWindField(atUtc, originPoint, destinationPoint)
       .then(setWindField)
       .catch(() => setWindField(null));
   }, []);
@@ -212,7 +216,6 @@ function DashboardPage() {
     setError(null);
     try {
       const departureUtc = new Date(values.departureTime).toISOString();
-      const windFieldRequest = getWindField(departureUtc).catch(() => null);
       const apiResult = await createOptimization({
         origin_icao: airportCode(values.origin),
         destination_icao: airportCode(values.destination),
@@ -221,7 +224,19 @@ function DashboardPage() {
         profile: values.profile,
       });
       setResult(apiResult);
-      setWindField(await windFieldRequest);
+      const windCandidate = apiResult.winner;
+      const originPoint = windCandidate?.geometry[0];
+      const destinationPoint = windCandidate?.geometry.at(-1);
+      setWindField(
+        originPoint && destinationPoint
+          ? await getWindField(
+              departureUtc,
+              originPoint,
+              destinationPoint,
+              averageCruiseLevel(windCandidate) ?? 350
+            ).catch(() => null)
+          : null
+      );
       setEndpointLabels({
         destination: airportDisplayCode(values.destination),
         origin: airportDisplayCode(values.origin),

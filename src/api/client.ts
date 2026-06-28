@@ -88,10 +88,21 @@ export async function getExplanation(runId: string): Promise<Explanation> {
 
 export async function getWindField(
   atUtc: string,
+  origin: RoutePoint,
+  destination: RoutePoint,
   flightLevel = 350
 ): Promise<WindField> {
   const { data, error } = await api.GET("/api/v1/weather/wind-field", {
-    params: { query: { at_utc: atUtc, flight_level: flightLevel } },
+    params: {
+      query: {
+        at_utc: atUtc,
+        destination_latitude_deg: destination.latitude_deg,
+        destination_longitude_deg: destination.longitude_deg,
+        flight_level: flightLevel,
+        origin_latitude_deg: origin.latitude_deg,
+        origin_longitude_deg: origin.longitude_deg,
+      },
+    },
   });
   if (error || !data) throw new Error("Wind field unavailable.");
   return data;

@@ -563,6 +563,10 @@ export interface operations {
       query: {
         at_utc: string;
         flight_level?: number;
+        origin_latitude_deg: number;
+        origin_longitude_deg: number;
+        destination_latitude_deg: number;
+        destination_longitude_deg: number;
       };
       header?: never;
       path?: never;
