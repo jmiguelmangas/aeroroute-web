@@ -10,7 +10,10 @@ import {
   Candidate,
   createOptimization,
   DataQualityFlag,
+  DestinationAlternate,
+  EnrouteDiversion,
   Explanation,
+  FuelPlan,
   getExplanation,
   getRunwayOptions,
   getWindField,
@@ -56,6 +59,8 @@ const searchSchema = z.object({
   departureTime: z.string().min(1, "Departure time is required."),
   departureRunway: z.string(),
   arrivalRunway: z.string(),
+  destinationAlternate: z.string(),
+  extraFuelKg: z.number().min(0).max(100_000),
 });
 
 type SearchForm = z.infer<typeof searchSchema>;
@@ -180,10 +185,16 @@ function DashboardPage() {
       departureTime: defaultDepartureTime(),
       departureRunway: "",
       arrivalRunway: "",
+      destinationAlternate: "",
+      extraFuelKg: 0,
     },
   });
   const origin = useWatch({ control, name: "origin" });
   const destination = useWatch({ control, name: "destination" });
+  const destinationAlternate = useWatch({
+    control,
+    name: "destinationAlternate",
+  });
   const departureTime = useWatch({ control, name: "departureTime" });
   const runwayForecastTime = departureTime
     ? new Date(departureTime).toISOString()
@@ -221,7 +232,13 @@ function DashboardPage() {
     "explanation" | "factors" | "tradeoffs"
   >("explanation");
   const [technicalView, setTechnicalView] = useState<
-    "summary" | "costs" | "waypoints" | "profile" | "quality"
+    | "summary"
+    | "fuel"
+    | "alternates"
+    | "costs"
+    | "waypoints"
+    | "profile"
+    | "quality"
   >("summary");
 
   const winner = result.winner ?? demoResult.winner;
@@ -268,6 +285,10 @@ function DashboardPage() {
           values.arrivalRunway ||
           arrivalRunways.data?.suggested_runway ||
           undefined,
+        destination_alternate_icao: values.destinationAlternate
+          ? airportCode(values.destinationAlternate)
+          : undefined,
+        extra_fuel_kg: values.extraFuelKg,
       });
       setResult(apiResult);
       const windCandidate = apiResult.winner;
@@ -436,6 +457,21 @@ function DashboardPage() {
             <p className="runway-note">
               {runwayRecommendationNote(departureRunways.data)}
             </p>
+            <div className="planning-fields">
+              <AirportCombobox
+                label="Destination alternate (optional)"
+                onChange={(value) => setValue("destinationAlternate", value)}
+                value={destinationAlternate}
+              />
+              <Field label="Extra fuel (kg)">
+                <input
+                  min="0"
+                  step="100"
+                  type="number"
+                  {...register("extraFuelKg", { valueAsNumber: true })}
+                />
+              </Field>
+            </div>
             <Field label="Date and time (UTC)">
               <input type="datetime-local" {...register("departureTime")} />
             </Field>
@@ -529,6 +565,8 @@ function DashboardPage() {
             compact
             items={[
               { id: "summary", label: "Summary" },
+              { id: "fuel", label: "Fuel plan" },
+              { id: "alternates", label: "Alternates" },
               { id: "costs", label: "Costs" },
               { id: "waypoints", label: "Navigation fixes" },
               { id: "profile", label: "Profile" },
@@ -540,6 +578,9 @@ function DashboardPage() {
             assumptions={result.assumptions ?? []}
             candidate={winner}
             dataQuality={result.data_quality ?? []}
+            destinationAlternate={result.destination_alternate ?? null}
+            enrouteDiversions={result.enroute_diversions ?? []}
+            fuelPlan={result.fuel_plan ?? null}
             terminalSelection={result.terminal_selection ?? null}
             view={technicalView}
           />
@@ -778,14 +819,27 @@ function TechnicalView({
   assumptions,
   candidate,
   dataQuality,
+  destinationAlternate,
+  enrouteDiversions,
+  fuelPlan,
   terminalSelection,
   view,
 }: {
   assumptions: string[];
   candidate: Candidate | null;
   dataQuality: DataQualityFlag[];
+  destinationAlternate: DestinationAlternate | null;
+  enrouteDiversions: EnrouteDiversion[];
+  fuelPlan: FuelPlan | null;
   terminalSelection: TerminalSelection | null;
-  view: "summary" | "costs" | "waypoints" | "profile" | "quality";
+  view:
+    | "summary"
+    | "fuel"
+    | "alternates"
+    | "costs"
+    | "waypoints"
+    | "profile"
+    | "quality";
 }) {
   if (!candidate) {
     return <p>No feasible synthetic trajectory was found.</p>;
@@ -854,6 +908,159 @@ function TechnicalView({
         <Metric label="Mass treatment" value="Iterative fuel integration" />
         <Metric label="Internal units" value="SI" />
       </dl>
+    );
+  }
+  if (view === "fuel") {
+    if (!fuelPlan) {
+      return <p>Fuel planning is unavailable for this stored result.</p>;
+    }
+    return (
+      <div className="planning-detail">
+        <div className="planning-heading">
+          <strong>Fuel policy · {fuelPlan.policy_identifier}</strong>
+          <StatusBadge tone="warning">Not operational</StatusBadge>
+        </div>
+        <dl className="summary-list">
+          <DetailRow
+            label="Taxi"
+            value={`${formatNumber(fuelPlan.taxi_fuel_kg)} kg`}
+          />
+          <DetailRow
+            label="Trip"
+            value={`${formatNumber(fuelPlan.trip_fuel_kg)} kg`}
+          />
+          <DetailRow
+            label="Contingency"
+            value={`${formatNumber(fuelPlan.contingency_fuel_kg)} kg`}
+          />
+          <DetailRow
+            label="Destination alternate"
+            value={`${formatNumber(fuelPlan.alternate_fuel_kg)} kg`}
+          />
+          <DetailRow
+            label="Final reserve"
+            value={`${formatNumber(fuelPlan.final_reserve_fuel_kg)} kg`}
+          />
+          <DetailRow
+            label="Extra"
+            value={`${formatNumber(fuelPlan.extra_fuel_kg)} kg`}
+          />
+          <DetailRow
+            label="Block fuel"
+            value={`${formatNumber(fuelPlan.block_fuel_kg)} kg`}
+          />
+          <DetailRow
+            label="Takeoff mass"
+            value={`${formatNumber(fuelPlan.takeoff_mass_kg)} kg`}
+          />
+          <DetailRow
+            label="Estimated landing fuel"
+            value={`${formatNumber(fuelPlan.estimated_landing_fuel_kg)} kg`}
+          />
+          <DetailRow
+            label="Mass convergence"
+            value={
+              fuelPlan.mass_converged
+                ? `Converged in ${fuelPlan.mass_iterations} iterations`
+                : `Not converged after ${fuelPlan.mass_iterations} iterations`
+            }
+          />
+        </dl>
+        <ul className="factor-list compact-list">
+          {(fuelPlan.assumptions ?? []).map((assumption) => (
+            <li key={assumption}>{assumption}</li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+  if (view === "alternates") {
+    return (
+      <div className="planning-detail">
+        {destinationAlternate ? (
+          <section className="alternate-primary">
+            <div className="planning-heading">
+              <strong>
+                {destinationAlternate.icao_code} · {destinationAlternate.name}
+              </strong>
+              <StatusBadge
+                tone={
+                  destinationAlternate.runway_compatible ? "success" : "warning"
+                }
+              >
+                {destinationAlternate.selection}
+              </StatusBadge>
+            </div>
+            <dl className="metric-grid">
+              <Metric
+                label="From destination"
+                value={`${destinationAlternate.distance_from_destination_nm.toFixed(1)} NM`}
+              />
+              <Metric
+                label="Estimated fuel"
+                value={`${formatNumber(destinationAlternate.estimated_fuel_kg)} kg`}
+              />
+              <Metric
+                label="Longest runway"
+                value={
+                  destinationAlternate.longest_published_runway_ft
+                    ? `${formatNumber(destinationAlternate.longest_published_runway_ft)} ft`
+                    : "Unavailable"
+                }
+              />
+              <Metric
+                label="Navigation source"
+                value={
+                  destinationAlternate.navigation_source
+                    ? `AIRAC ${destinationAlternate.airac_cycle ?? "current"}`
+                    : "Unavailable"
+                }
+              />
+            </dl>
+          </section>
+        ) : (
+          <Alert tone="warning">
+            No compatible destination alternate was found.
+          </Alert>
+        )}
+        <section>
+          <h3>En-route diversion candidates</h3>
+          {enrouteDiversions.length ? (
+            <table className="waypoint-table diversion-table">
+              <thead>
+                <tr>
+                  <th>Airport</th>
+                  <th>Distance to route</th>
+                  <th>Runway</th>
+                  <th>Source</th>
+                </tr>
+              </thead>
+              <tbody>
+                {enrouteDiversions.map((diversion) => (
+                  <tr key={diversion.icao_code}>
+                    <td>{diversion.icao_code}</td>
+                    <td>{diversion.distance_to_route_nm.toFixed(1)} NM</td>
+                    <td>
+                      {diversion.longest_published_runway_ft
+                        ? `${formatNumber(diversion.longest_published_runway_ft)} ft`
+                        : "Unavailable"}
+                    </td>
+                    <td>AIRAC {diversion.airac_cycle ?? "current"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>
+              No runway-compatible en-route diversion candidates were found.
+            </p>
+          )}
+        </section>
+        <p className="warning-text">
+          Candidates do not include weather minima, NOTAM, airport status or
+          ETOPS/EDTO approval.
+        </p>
+      </div>
     );
   }
   if (view === "costs") {

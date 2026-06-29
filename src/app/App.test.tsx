@@ -49,6 +49,54 @@ const result: OptimizationResult = {
   alternatives: [],
   assumptions: ["Aircraft-specific mass assumptions"],
   data_quality: [],
+  fuel_plan: {
+    policy_identifier: "easa_simplified_v1",
+    taxi_fuel_kg: 800,
+    trip_fuel_kg: 69_239,
+    contingency_fuel_kg: 3_462,
+    alternate_fuel_kg: 4_500,
+    final_reserve_fuel_kg: 2_790,
+    extra_fuel_kg: 1_000,
+    block_fuel_kg: 81_791,
+    takeoff_fuel_kg: 80_991,
+    estimated_landing_fuel_kg: 11_752,
+    estimated_alternate_arrival_fuel_kg: 7_252,
+    ramp_mass_kg: 291_791,
+    takeoff_mass_kg: 290_991,
+    estimated_landing_mass_kg: 221_752,
+    operationally_approved: false,
+    mass_iterations: 3,
+    mass_converged: true,
+    assumptions: ["Educational fuel arithmetic."],
+  },
+  destination_alternate: {
+    icao_code: "KBOS",
+    name: "Boston Logan",
+    distance_from_destination_nm: 162.4,
+    estimated_flight_time_minutes: 24,
+    estimated_fuel_kg: 4_500,
+    longest_published_runway_ft: 10_083,
+    runway_compatible: true,
+    selection: "suggested",
+    navigation_source: "airac.net",
+    airac_cycle: "2606",
+    operationally_approved: false,
+    rationale: [],
+  },
+  enroute_diversions: [
+    {
+      icao_code: "CYQX",
+      name: "Gander",
+      distance_to_route_nm: 88.2,
+      nearest_route_fraction: 0.72,
+      longest_published_runway_ft: 10_200,
+      runway_compatible: true,
+      navigation_source: "airac.net",
+      airac_cycle: "2606",
+      operationally_approved: false,
+      rationale: [],
+    },
+  ],
 };
 
 const server = setupServer();
@@ -163,6 +211,14 @@ describe("AeroRoute search", () => {
       aircraft_type: "B77W",
       profile: "minimum_fuel",
     });
+
+    await user.click(screen.getByRole("tab", { name: "Fuel plan" }));
+    expect(screen.getByText("81,791 kg")).toBeVisible();
+    expect(screen.getByText("Not operational")).toBeVisible();
+
+    await user.click(screen.getByRole("tab", { name: "Alternates" }));
+    expect(screen.getByText(/KBOS · Boston Logan/)).toBeVisible();
+    expect(screen.getByRole("cell", { name: "CYQX" })).toBeVisible();
   });
 
   it("keeps the reference result visible when the API is unavailable", async () => {

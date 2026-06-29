@@ -220,6 +220,65 @@ export interface components {
        */
       severity: "info" | "warning";
     };
+    /** DestinationAlternate */
+    DestinationAlternate: {
+      /** Airac Cycle */
+      airac_cycle?: string | null;
+      /** Distance From Destination Nm */
+      distance_from_destination_nm: number;
+      /** Estimated Flight Time Minutes */
+      estimated_flight_time_minutes: number;
+      /** Estimated Fuel Kg */
+      estimated_fuel_kg: number;
+      /** Icao Code */
+      icao_code: string;
+      /** Longest Published Runway Ft */
+      longest_published_runway_ft?: number | null;
+      /** Name */
+      name: string;
+      /** Navigation Source */
+      navigation_source?: string | null;
+      /**
+       * Operationally Approved
+       * @default false
+       */
+      operationally_approved: boolean;
+      /** Rationale */
+      rationale?: string[];
+      /** Runway Compatible */
+      runway_compatible: boolean;
+      /**
+       * Selection
+       * @enum {string}
+       */
+      selection: "requested" | "suggested";
+    };
+    /** EnrouteDiversion */
+    EnrouteDiversion: {
+      /** Airac Cycle */
+      airac_cycle?: string | null;
+      /** Distance To Route Nm */
+      distance_to_route_nm: number;
+      /** Icao Code */
+      icao_code: string;
+      /** Longest Published Runway Ft */
+      longest_published_runway_ft?: number | null;
+      /** Name */
+      name: string;
+      /** Navigation Source */
+      navigation_source?: string | null;
+      /** Nearest Route Fraction */
+      nearest_route_fraction: number;
+      /**
+       * Operationally Approved
+       * @default false
+       */
+      operationally_approved: boolean;
+      /** Rationale */
+      rationale?: string[];
+      /** Runway Compatible */
+      runway_compatible: boolean;
+    };
     /** ExplanationResponse */
     ExplanationResponse: {
       /** Provider */
@@ -257,6 +316,54 @@ export interface components {
       trip_fuel_kg: number;
       /** Warning Code */
       warning_code?: string | null;
+    };
+    /** FuelPlanResponse */
+    FuelPlanResponse: {
+      /** Alternate Fuel Kg */
+      alternate_fuel_kg: number;
+      /** Assumptions */
+      assumptions?: string[];
+      /** Block Fuel Kg */
+      block_fuel_kg: number;
+      /** Contingency Fuel Kg */
+      contingency_fuel_kg: number;
+      /** Estimated Alternate Arrival Fuel Kg */
+      estimated_alternate_arrival_fuel_kg: number;
+      /** Estimated Landing Fuel Kg */
+      estimated_landing_fuel_kg: number;
+      /** Estimated Landing Mass Kg */
+      estimated_landing_mass_kg: number;
+      /** Extra Fuel Kg */
+      extra_fuel_kg: number;
+      /** Final Reserve Fuel Kg */
+      final_reserve_fuel_kg: number;
+      /**
+       * Mass Converged
+       * @default false
+       */
+      mass_converged: boolean;
+      /**
+       * Mass Iterations
+       * @default 1
+       */
+      mass_iterations: number;
+      /**
+       * Operationally Approved
+       * @default false
+       */
+      operationally_approved: boolean;
+      /** Policy Identifier */
+      policy_identifier: string;
+      /** Ramp Mass Kg */
+      ramp_mass_kg: number;
+      /** Takeoff Fuel Kg */
+      takeoff_fuel_kg: number;
+      /** Takeoff Mass Kg */
+      takeoff_mass_kg: number;
+      /** Taxi Fuel Kg */
+      taxi_fuel_kg: number;
+      /** Trip Fuel Kg */
+      trip_fuel_kg: number;
     };
     /** GeoJsonGeometry */
     GeoJsonGeometry: {
@@ -320,12 +427,20 @@ export interface components {
       aircraft_type: "A320" | "B738" | "B77W" | "B788" | "A359" | "A388";
       /** Arrival Runway */
       arrival_runway?: string | null;
+      /** Contingency Percent */
+      contingency_percent?: number | null;
       /** Departure Runway */
       departure_runway?: string | null;
       /** Departure Time Utc */
       departure_time_utc?: string | null;
+      /** Destination Alternate Icao */
+      destination_alternate_icao?: string | null;
       /** Destination Icao */
       destination_icao: string;
+      /** Extra Fuel Kg */
+      extra_fuel_kg?: number | null;
+      /** Final Reserve Minutes */
+      final_reserve_minutes?: number | null;
       /** Origin Icao */
       origin_icao: string;
       /**
@@ -346,7 +461,13 @@ export interface components {
       baseline?: components["schemas"]["CandidateResponse"] | null;
       /** Data Quality */
       data_quality?: components["schemas"]["DataQualityFlag"][];
+      destination_alternate?:
+        | components["schemas"]["DestinationAlternate"]
+        | null;
+      /** Enroute Diversions */
+      enroute_diversions?: components["schemas"]["EnrouteDiversion"][];
       fuel_iteration?: components["schemas"]["FuelIterationSummary"] | null;
+      fuel_plan?: components["schemas"]["FuelPlanResponse"] | null;
       request?: components["schemas"]["OptimizationRequest"] | null;
       /** Run Id */
       run_id?: string | null;

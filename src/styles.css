@@ -1140,6 +1140,37 @@ h1 span,
   gap: 18px;
 }
 
+.planning-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(100px, 0.8fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.planning-detail {
+  display: grid;
+  gap: 14px;
+}
+
+.planning-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.planning-detail h3 {
+  margin: 0 0 8px;
+  color: #dcecff;
+  font-size: 0.88rem;
+}
+
+.compact-list {
+  gap: 7px;
+  color: #b9c9da;
+  font-size: 0.76rem;
+}
+
 .quality-view h3 {
   margin: 0 0 8px;
   color: #dcecff;

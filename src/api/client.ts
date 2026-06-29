@@ -6,6 +6,10 @@ export type Airport = components["schemas"]["AirportResponse"];
 export type Candidate = components["schemas"]["CandidateResponse"];
 export type DataQualityFlag = components["schemas"]["DataQualityFlag"];
 export type Explanation = components["schemas"]["ExplanationResponse"];
+export type DestinationAlternate =
+  components["schemas"]["DestinationAlternate"];
+export type EnrouteDiversion = components["schemas"]["EnrouteDiversion"];
+export type FuelPlan = components["schemas"]["FuelPlanResponse"];
 export type OptimizationHistoryItem =
   components["schemas"]["OptimizationHistoryItem"];
 export type OptimizationRequest = components["schemas"]["OptimizationRequest"];
