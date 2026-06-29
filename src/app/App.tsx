@@ -8,7 +8,7 @@ import { z } from "zod";
 
 import {
   Candidate,
-  createOptimization,
+  createFlightPlan,
   DataQualityFlag,
   DestinationAlternate,
   EnrouteDiversion,
@@ -43,7 +43,13 @@ import {
   weatherEvidence,
   windStatistics,
 } from "../maps/routeMetrics";
-import { AboutPage, HistoryPage, RunDetailPage } from "../routes/pages";
+import {
+  AboutPage,
+  FlightPlanDetailPage,
+  FlightPlanHistoryPage,
+  HistoryPage,
+  RunDetailPage,
+} from "../routes/pages";
 
 const profiles: Record<OptimizationProfile, string> = {
   minimum_fuel: "Minimum fuel",
@@ -61,6 +67,8 @@ const searchSchema = z.object({
   arrivalRunway: z.string(),
   destinationAlternate: z.string(),
   extraFuelKg: z.number().min(0).max(100_000),
+  callsign: z.string().max(12),
+  payloadMassKg: z.number().min(0).max(100_000),
 });
 
 type SearchForm = z.infer<typeof searchSchema>;
@@ -163,6 +171,11 @@ export function App() {
       <Route path="/" element={<DashboardPage />} />
       <Route path="/runs" element={<HistoryPage />} />
       <Route path="/runs/:runId" element={<RunDetailPage />} />
+      <Route
+        path="/flight-plans/:flightPlanId"
+        element={<FlightPlanDetailPage />}
+      />
+      <Route path="/flight-plans" element={<FlightPlanHistoryPage />} />
       <Route path="/about" element={<AboutPage />} />
     </Routes>
   );
@@ -187,6 +200,8 @@ function DashboardPage() {
       arrivalRunway: "",
       destinationAlternate: "",
       extraFuelKg: 0,
+      callsign: "ARX101",
+      payloadMassKg: 8_000,
     },
   });
   const origin = useWatch({ control, name: "origin" });
@@ -223,6 +238,7 @@ function DashboardPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [flightPlanId, setFlightPlanId] = useState<string | null>(null);
   const [explanation, setExplanation] = useState<Explanation>(demoExplanation);
   const [windField, setWindField] = useState<WindField | null>(null);
   const [routeView, setRouteView] = useState<
@@ -271,7 +287,7 @@ function DashboardPage() {
     setError(null);
     try {
       const departureUtc = new Date(values.departureTime).toISOString();
-      const apiResult = await createOptimization({
+      const flightPlan = await createFlightPlan({
         origin_icao: airportCode(values.origin),
         destination_icao: airportCode(values.destination),
         departure_time_utc: departureUtc,
@@ -289,8 +305,12 @@ function DashboardPage() {
           ? airportCode(values.destinationAlternate)
           : undefined,
         extra_fuel_kg: values.extraFuelKg,
+        callsign: values.callsign || undefined,
+        payload_mass_kg: values.payloadMassKg,
       });
+      const apiResult = flightPlan.optimization;
       setResult(apiResult);
+      setFlightPlanId(flightPlan.flight_plan_id);
       const windCandidate = apiResult.winner;
       const originPoint = windCandidate?.geometry[0];
       const destinationPoint = windCandidate?.geometry.at(-1);
@@ -372,7 +392,7 @@ function DashboardPage() {
             <a className="nav-item" href="#route-analysis">
               Results
             </a>
-            <Link className="nav-item" to="/runs">
+            <Link className="nav-item" to="/flight-plans">
               Saved routes
             </Link>
             <button className="nav-item" type="button">
@@ -458,6 +478,17 @@ function DashboardPage() {
               {runwayRecommendationNote(departureRunways.data)}
             </p>
             <div className="planning-fields">
+              <Field label="Callsign">
+                <input maxLength={12} {...register("callsign")} />
+              </Field>
+              <Field label="Payload (kg)">
+                <input
+                  min="0"
+                  step="100"
+                  type="number"
+                  {...register("payloadMassKg", { valueAsNumber: true })}
+                />
+              </Field>
               <AirportCombobox
                 label="Destination alternate (optional)"
                 onChange={(value) => setValue("destinationAlternate", value)}
@@ -476,7 +507,7 @@ function DashboardPage() {
               <input type="datetime-local" {...register("departureTime")} />
             </Field>
             <Button icon={Search} loading={loading} type="submit">
-              {loading ? "Searching..." : "Search routes"}
+              {loading ? "Generating..." : "Generate OFP"}
             </Button>
           </form>
           <div className="map-stage">
@@ -494,6 +525,12 @@ function DashboardPage() {
       </section>
 
       {error ? <Alert>{error}</Alert> : null}
+      {flightPlanId ? (
+        <Alert>
+          Flight plan saved.{" "}
+          <Link to={`/flight-plans/${flightPlanId}`}>Open OFP</Link>
+        </Alert>
+      ) : null}
 
       <section
         className="dashboard-grid"

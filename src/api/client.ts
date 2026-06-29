@@ -10,6 +10,10 @@ export type DestinationAlternate =
   components["schemas"]["DestinationAlternate"];
 export type EnrouteDiversion = components["schemas"]["EnrouteDiversion"];
 export type FuelPlan = components["schemas"]["FuelPlanResponse"];
+export type FlightPlanRequest = components["schemas"]["FlightPlanRequest"];
+export type FlightPlan = components["schemas"]["FlightPlanResponse"];
+export type FlightPlanHistoryItem =
+  components["schemas"]["FlightPlanHistoryItem"];
 export type OptimizationHistoryItem =
   components["schemas"]["OptimizationHistoryItem"];
 export type OptimizationRequest = components["schemas"]["OptimizationRequest"];
@@ -41,6 +45,43 @@ export async function createOptimization(
   } catch {
     throw new Error("The simulation could not be completed.");
   }
+}
+
+export async function createFlightPlan(
+  request: FlightPlanRequest
+): Promise<FlightPlan> {
+  try {
+    const { data, error } = await api.POST("/api/v1/flight-plans", {
+      body: request,
+    });
+    if (error || !data) throw new Error();
+    return data;
+  } catch {
+    throw new Error("The flight plan could not be generated.");
+  }
+}
+
+export async function getFlightPlan(flightPlanId: string): Promise<FlightPlan> {
+  const { data, error } = await api.GET(
+    "/api/v1/flight-plans/{flight_plan_id}",
+    { params: { path: { flight_plan_id: flightPlanId } } }
+  );
+  if (error || !data) throw new Error("The flight plan could not be loaded.");
+  return data;
+}
+
+export async function listFlightPlans(): Promise<FlightPlanHistoryItem[]> {
+  const { data, error } = await api.GET("/api/v1/flight-plans");
+  if (error || !data) throw new Error("Flight-plan history unavailable.");
+  return data;
+}
+
+export async function getFlightPlanPdf(flightPlanId: string): Promise<Blob> {
+  const response = await globalThis.fetch(
+    `${apiUrl}/api/v1/flight-plans/${flightPlanId}/pdf`
+  );
+  if (!response.ok) throw new Error("The OFP PDF could not be generated.");
+  return response.blob();
 }
 
 export async function searchAirports(query: string): Promise<Airport[]> {

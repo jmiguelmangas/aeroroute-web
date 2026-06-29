@@ -10,7 +10,7 @@ import { setupServer } from "msw/node";
 import { MemoryRouter } from "react-router-dom";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import type { OptimizationRequest, OptimizationResult } from "../api/client";
+import type { FlightPlanRequest, OptimizationResult } from "../api/client";
 import { App } from "./App";
 
 const result: OptimizationResult = {
@@ -101,6 +101,28 @@ const result: OptimizationResult = {
 
 const server = setupServer();
 
+function flightPlanResponse(optimization: OptimizationResult) {
+  return {
+    flight_plan_id: "plan-1",
+    optimization_run_id: optimization.run_id ?? "run-1",
+    status: "completed",
+    created_at: "2026-06-29T14:00:00Z",
+    coded_route: "LEMD BARD3N DCT PAWLN1 KJFK",
+    request: {
+      ...optimization.request,
+      origin_icao: "LEMD",
+      destination_icao: "KJFK",
+      aircraft_type: "B77W",
+      profile: "minimum_fuel",
+      callsign: "ARX101",
+      payload_mass_kg: 8_000,
+    },
+    optimization,
+    operationally_approved: false,
+    disclaimer: "Educational pre-operational flight-plan simulation only.",
+  };
+}
+
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
   cleanup();
@@ -110,7 +132,7 @@ afterAll(() => server.close());
 
 describe("AeroRoute search", () => {
   it("loads AIRAC runway choices and submits explicit selections", async () => {
-    let submitted: OptimizationRequest | undefined;
+    let submitted: FlightPlanRequest | undefined;
     server.use(
       http.get(
         "http://localhost:8000/api/v1/airports/:icao/runways",
@@ -141,22 +163,24 @@ describe("AeroRoute search", () => {
         }
       ),
       http.post(
-        "http://localhost:8000/api/v1/optimizations",
+        "http://localhost:8000/api/v1/flight-plans",
         async ({ request }) => {
-          submitted = (await request.json()) as OptimizationRequest;
-          return HttpResponse.json({
-            ...result,
-            terminal_selection: {
-              departure_runway: "32L",
-              departure_runway_suggested: false,
-              sid_identifier: "VAST2N",
-              arrival_runway: "22L",
-              arrival_runway_suggested: false,
-              star_identifier: "CAMR4",
-              airac_cycle: "2606",
-              rationale: [],
-            },
-          });
+          submitted = (await request.json()) as FlightPlanRequest;
+          return HttpResponse.json(
+            flightPlanResponse({
+              ...result,
+              terminal_selection: {
+                departure_runway: "32L",
+                departure_runway_suggested: false,
+                sid_identifier: "VAST2N",
+                arrival_runway: "22L",
+                arrival_runway_suggested: false,
+                star_identifier: "CAMR4",
+                airac_cycle: "2606",
+                rationale: [],
+              },
+            })
+          );
         }
       )
     );
@@ -171,7 +195,7 @@ describe("AeroRoute search", () => {
       screen.getByRole("combobox", { name: "Arrival runway" }),
       "22L"
     );
-    await user.click(screen.getByRole("button", { name: "Search routes" }));
+    await user.click(screen.getByRole("button", { name: "Generate OFP" }));
 
     await waitFor(() =>
       expect(submitted).toMatchObject({
@@ -185,13 +209,13 @@ describe("AeroRoute search", () => {
   });
 
   it("submits the selected widebody and renders the API result", async () => {
-    let submitted: OptimizationRequest | undefined;
+    let submitted: FlightPlanRequest | undefined;
     server.use(
       http.post(
-        "http://localhost:8000/api/v1/optimizations",
+        "http://localhost:8000/api/v1/flight-plans",
         async ({ request }) => {
-          submitted = (await request.json()) as OptimizationRequest;
-          return HttpResponse.json(result);
+          submitted = (await request.json()) as FlightPlanRequest;
+          return HttpResponse.json(flightPlanResponse(result));
         }
       )
     );
@@ -202,7 +226,7 @@ describe("AeroRoute search", () => {
       screen.getByRole("combobox", { name: "Aircraft" }),
       "B77W"
     );
-    await user.click(screen.getByRole("button", { name: "Search routes" }));
+    await user.click(screen.getByRole("button", { name: "Generate OFP" }));
 
     expect(await screen.findByRole("cell", { name: "69,239" })).toBeVisible();
     expect(submitted).toMatchObject({
@@ -210,6 +234,8 @@ describe("AeroRoute search", () => {
       destination_icao: "KJFK",
       aircraft_type: "B77W",
       profile: "minimum_fuel",
+      callsign: "ARX101",
+      payload_mass_kg: 8_000,
     });
 
     await user.click(screen.getByRole("tab", { name: "Fuel plan" }));
@@ -224,17 +250,17 @@ describe("AeroRoute search", () => {
   it("keeps the reference result visible when the API is unavailable", async () => {
     server.use(
       http.post(
-        "http://localhost:8000/api/v1/optimizations",
+        "http://localhost:8000/api/v1/flight-plans",
         () => new HttpResponse(null, { status: 503 })
       )
     );
     const user = userEvent.setup();
     renderApp();
 
-    await user.click(screen.getByRole("button", { name: "Search routes" }));
+    await user.click(screen.getByRole("button", { name: "Generate OFP" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "The simulation could not be completed."
+      "The flight plan could not be generated."
     );
     await waitFor(() =>
       expect(screen.getByRole("cell", { name: "49,780" })).toBeVisible()

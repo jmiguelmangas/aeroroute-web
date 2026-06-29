@@ -55,6 +55,58 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/flight-plans": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Flight Plans */
+    get: operations["list_flight_plans_api_v1_flight_plans_get"];
+    put?: never;
+    /** Create Flight Plan */
+    post: operations["create_flight_plan_api_v1_flight_plans_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/flight-plans/{flight_plan_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Flight Plan */
+    get: operations["get_flight_plan_api_v1_flight_plans__flight_plan_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/flight-plans/{flight_plan_id}/pdf": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Flight Plan Pdf */
+    get: operations["get_flight_plan_pdf_api_v1_flight_plans__flight_plan_id__pdf_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/optimizations": {
     parameters: {
       query?: never;
@@ -288,6 +340,91 @@ export interface components {
       /** Warnings */
       warnings: string[];
     };
+    /** FlightPlanHistoryItem */
+    FlightPlanHistoryItem: {
+      /** Aircraft Type */
+      aircraft_type: string;
+      /** Callsign */
+      callsign?: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Destination Icao */
+      destination_icao: string;
+      /** Flight Plan Id */
+      flight_plan_id: string;
+      /** Optimization Run Id */
+      optimization_run_id: string;
+      /** Origin Icao */
+      origin_icao: string;
+    };
+    /** FlightPlanRequest */
+    FlightPlanRequest: {
+      /**
+       * Aircraft Type
+       * @enum {string}
+       */
+      aircraft_type: "A320" | "B738" | "B77W" | "B788" | "A359" | "A388";
+      /** Arrival Runway */
+      arrival_runway?: string | null;
+      /** Callsign */
+      callsign?: string | null;
+      /** Contingency Percent */
+      contingency_percent?: number | null;
+      /** Departure Runway */
+      departure_runway?: string | null;
+      /** Departure Time Utc */
+      departure_time_utc?: string | null;
+      /** Destination Alternate Icao */
+      destination_alternate_icao?: string | null;
+      /** Destination Icao */
+      destination_icao: string;
+      /** Extra Fuel Kg */
+      extra_fuel_kg?: number | null;
+      /** Final Reserve Minutes */
+      final_reserve_minutes?: number | null;
+      /** Origin Icao */
+      origin_icao: string;
+      /** Payload Mass Kg */
+      payload_mass_kg?: number | null;
+      /**
+       * Profile
+       * @default balanced
+       * @enum {string}
+       */
+      profile: "minimum_fuel" | "minimum_time" | "balanced";
+    };
+    /** FlightPlanResponse */
+    FlightPlanResponse: {
+      /** Coded Route */
+      coded_route: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Disclaimer */
+      disclaimer: string;
+      /** Flight Plan Id */
+      flight_plan_id: string;
+      /**
+       * Operationally Approved
+       * @default false
+       */
+      operationally_approved: boolean;
+      optimization: components["schemas"]["OptimizationResponse"];
+      /** Optimization Run Id */
+      optimization_run_id: string;
+      request: components["schemas"]["FlightPlanRequest"];
+      /**
+       * Status
+       * @default completed
+       * @constant
+       */
+      status: "completed";
+    };
     /** FuelBreakdown */
     FuelBreakdown: {
       /** Cruise Fuel Kg */
@@ -443,6 +580,8 @@ export interface components {
       final_reserve_minutes?: number | null;
       /** Origin Icao */
       origin_icao: string;
+      /** Payload Mass Kg */
+      payload_mass_kg?: number | null;
       /**
        * Profile
        * @default balanced
@@ -786,6 +925,121 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["RunwayOptionsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_flight_plans_api_v1_flight_plans_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FlightPlanHistoryItem"][];
+        };
+      };
+    };
+  };
+  create_flight_plan_api_v1_flight_plans_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["FlightPlanRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FlightPlanResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_flight_plan_api_v1_flight_plans__flight_plan_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        flight_plan_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FlightPlanResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_flight_plan_pdf_api_v1_flight_plans__flight_plan_id__pdf_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        flight_plan_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */

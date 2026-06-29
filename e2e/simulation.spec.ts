@@ -130,6 +130,22 @@ const optimizationResponse = {
   },
 };
 
+const flightPlanResponse = {
+  flight_plan_id: "plan-1",
+  optimization_run_id: "run-1",
+  status: "completed",
+  created_at: "2026-06-29T14:00:00Z",
+  coded_route: "LEMD VAST2N DCT CAMR4 KJFK",
+  request: {
+    ...optimizationResponse.request,
+    callsign: "ARX101",
+    payload_mass_kg: 8_000,
+  },
+  optimization: optimizationResponse,
+  operationally_approved: false,
+  disclaimer: "Educational pre-operational flight-plan simulation only.",
+};
+
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/airports/*/runways?**", async (route) => {
     const url = new URL(route.request().url());
@@ -161,11 +177,11 @@ test.beforeEach(async ({ page }) => {
 
 test("searches routes and shows the dashboard result", async ({ page }) => {
   let submitted: Record<string, unknown> | null = null;
-  await page.route("**/api/v1/optimizations", async (route) => {
+  await page.route("**/api/v1/flight-plans", async (route) => {
     submitted = route.request().postDataJSON();
     await route.fulfill({
       contentType: "application/json",
-      body: JSON.stringify(optimizationResponse),
+      body: JSON.stringify(flightPlanResponse),
     });
   });
 
@@ -179,7 +195,7 @@ test("searches routes and shows the dashboard result", async ({ page }) => {
   await page
     .getByRole("combobox", { name: "Arrival runway" })
     .selectOption("22L");
-  await page.getByRole("button", { name: "Search routes" }).click();
+  await page.getByRole("button", { name: "Generate OFP" }).click();
 
   expect(submitted).toMatchObject({
     departure_runway: "32L",
@@ -230,15 +246,15 @@ test("searches routes and shows the dashboard result", async ({ page }) => {
 test("keeps the reference dashboard visible when the API is degraded", async ({
   page,
 }) => {
-  await page.route("**/api/v1/optimizations", async (route) => {
+  await page.route("**/api/v1/flight-plans", async (route) => {
     await route.fulfill({ status: 503, body: "weather provider unavailable" });
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Search routes" }).click();
+  await page.getByRole("button", { name: "Generate OFP" }).click();
 
   await expect(
-    page.getByRole("alert").getByText("The simulation could not be completed.")
+    page.getByRole("alert").getByText("The flight plan could not be generated.")
   ).toBeVisible();
   await expect(page.getByRole("cell", { name: "49,780" })).toBeVisible();
 });
@@ -246,10 +262,10 @@ test("keeps the reference dashboard visible when the API is degraded", async ({
 test("loads an MLX explanation through the existing explanation endpoint", async ({
   page,
 }) => {
-  await page.route("**/api/v1/optimizations", async (route) => {
+  await page.route("**/api/v1/flight-plans", async (route) => {
     await route.fulfill({
       contentType: "application/json",
-      body: JSON.stringify(optimizationResponse),
+      body: JSON.stringify(flightPlanResponse),
     });
   });
   await page.route(
@@ -267,7 +283,7 @@ test("loads an MLX explanation through the existing explanation endpoint", async
   );
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Search routes" }).click();
+  await page.getByRole("button", { name: "Generate OFP" }).click();
   await page.getByRole("button", { name: "Regenerate explanation" }).click();
 
   await expect(page.getByText("Generated locally with MLX")).toBeVisible();
@@ -362,6 +378,27 @@ test("shows persisted run history and its explanation", async ({ page }) => {
     page.getByRole("heading", { name: "Stored route" })
   ).toBeVisible();
   await expect(page.getByText("Deterministic route facts.")).toBeVisible();
+});
+
+test("reloads an immutable pre-operational OFP", async ({ page }) => {
+  await page.route("**/api/v1/flight-plans/plan-1", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(flightPlanResponse),
+    });
+  });
+
+  await page.goto("/flight-plans/plan-1");
+
+  await expect(
+    page.getByRole("heading", { name: "ARX101 · LEMD → KJFK" })
+  ).toBeVisible();
+  await expect(page.getByText(flightPlanResponse.coded_route)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Export JSON" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Export PDF" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Navigation log" })
+  ).toBeVisible();
 });
 
 test("has no serious accessibility violations in the reference dashboard", async ({

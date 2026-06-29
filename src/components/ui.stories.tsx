@@ -159,3 +159,23 @@ export const Alerts: Story = {
     </div>
   ),
 };
+
+export const OFPReview: Story = {
+  render: () => (
+    <div className="story-panel">
+      <Alert tone="warning">
+        Educational pre-operational flight-plan simulation. Not ICAO fileable.
+      </Alert>
+      <Panel eyebrow="ARX101 · LEMD → KJFK" title="Fuel and mass">
+        <div className="ofp-fuel-grid">
+          <Metric label="Trip" value="60,810 kg" />
+          <Metric label="Contingency" value="3,040 kg" />
+          <Metric label="Alternate" value="6,205 kg" />
+          <Metric label="Final reserve" value="2,790 kg" />
+          <Metric label="Block" value="75,145 kg" />
+          <Metric label="Takeoff mass" value="284,345 kg" />
+        </div>
+      </Panel>
+    </div>
+  ),
+};
