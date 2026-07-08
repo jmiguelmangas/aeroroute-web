@@ -15,11 +15,13 @@ import {
   Explanation,
   FuelPlan,
   getExplanation,
+  getOperationalReadiness,
   getRouteSupport,
   getRunwayOptions,
   getWindField,
   OptimizationProfile,
   OptimizationResult,
+  OperationalReadiness,
   RouteSupport,
   RunwayOptions,
   TerminalSelection,
@@ -237,6 +239,12 @@ function DashboardPage() {
     queryKey: ["route-support", originIcao, destinationIcao],
     queryFn: () => getRouteSupport(originIcao, destinationIcao),
     enabled: originIcao.length === 4 && destinationIcao.length === 4,
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+  const operationalReadiness = useQuery({
+    queryKey: ["operational-readiness"],
+    queryFn: getOperationalReadiness,
     staleTime: 30 * 60 * 1000,
     retry: 1,
   });
@@ -643,6 +651,7 @@ function DashboardPage() {
         <span>Traceable and reproducible</span>
         <span>Built for pilots, dispatchers and analysts</span>
       </footer>
+      <OperationalReadinessPanel readiness={operationalReadiness.data} />
       <p className="disclaimer">
         AeroRoute MLX generates an educational pre-operational flight-plan
         simulation. Results are approximate, may use incomplete public data, are
@@ -650,6 +659,40 @@ function DashboardPage() {
         or safety-critical decisions.
       </p>
     </main>
+  );
+}
+
+function OperationalReadinessPanel({
+  readiness,
+}: {
+  readiness: OperationalReadiness | undefined;
+}) {
+  const gaps = (readiness?.gaps ?? []).slice(0, 3);
+  return (
+    <section
+      className="operational-readiness"
+      aria-label="Operational readiness"
+    >
+      <div>
+        <span>Operational readiness</span>
+        <strong>
+          {readiness?.operational_use_enabled
+            ? "Approved operator build"
+            : "Simulator mode only"}
+        </strong>
+      </div>
+      <p>
+        {readiness?.disclaimer ??
+          "Operational readiness is not available; keep treating every output as non-operational."}
+      </p>
+      {gaps.length ? (
+        <ul>
+          {gaps.map((gap) => (
+            <li key={gap.code}>{gap.title}</li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   );
 }
 

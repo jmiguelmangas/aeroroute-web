@@ -148,6 +148,31 @@ beforeEach(() => {
         airports: [],
         problems: [],
       })
+    ),
+    http.get("http://localhost:8000/api/v1/operational-readiness", () =>
+      HttpResponse.json({
+        active_mode: "simulator",
+        requested_mode: "simulator",
+        operational_use_enabled: false,
+        status: "simulator_only",
+        approval_required: true,
+        regulator_path_identified: false,
+        operator_profile_present: false,
+        licensed_operational_data_present: false,
+        safety_case_present: false,
+        requirements_traceability_present: false,
+        manual_procedure_acceptance_present: false,
+        disclaimer:
+          "AeroRoute MLX is currently limited to simulator mode. It is not ICAO-fileable, dispatch-authorized, or suitable for operational or safety-critical decisions.",
+        gaps: [
+          {
+            code: "operator_profile_missing",
+            title: "Launch operator not configured",
+            severity: "blocking",
+            detail: "A named operator is required.",
+          },
+        ],
+      })
     )
   );
 });
@@ -272,6 +297,14 @@ describe("AeroRoute search", () => {
     await user.click(screen.getByRole("tab", { name: "Alternates" }));
     expect(screen.getByText(/KBOS · Boston Logan/)).toBeVisible();
     expect(screen.getByRole("cell", { name: "CYQX" })).toBeVisible();
+  });
+
+  it("shows operational readiness blockers from the API", async () => {
+    renderApp();
+
+    expect(await screen.findByText("Simulator mode only")).toBeVisible();
+    expect(screen.getByText("Launch operator not configured")).toBeVisible();
+    expect(screen.getByText(/not ICAO-fileable/)).toBeVisible();
   });
 
   it("keeps the reference result visible when the API is unavailable", async () => {

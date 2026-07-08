@@ -147,6 +147,34 @@ const flightPlanResponse = {
 };
 
 test.beforeEach(async ({ page }) => {
+  await page.route("**/api/v1/operational-readiness", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        active_mode: "simulator",
+        requested_mode: "simulator",
+        operational_use_enabled: false,
+        status: "simulator_only",
+        approval_required: true,
+        regulator_path_identified: false,
+        operator_profile_present: false,
+        licensed_operational_data_present: false,
+        safety_case_present: false,
+        requirements_traceability_present: false,
+        manual_procedure_acceptance_present: false,
+        disclaimer:
+          "AeroRoute MLX is currently limited to simulator mode. It is not ICAO-fileable, dispatch-authorized, or suitable for operational or safety-critical decisions.",
+        gaps: [
+          {
+            code: "operator_profile_missing",
+            title: "Launch operator not configured",
+            severity: "blocking",
+            detail: "A named operator is required.",
+          },
+        ],
+      }),
+    });
+  });
   await page.route("**/api/v1/airports/route-support?**", async (route) => {
     await route.fulfill({
       contentType: "application/json",

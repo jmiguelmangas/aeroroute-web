@@ -1294,6 +1294,46 @@ h1 span,
   border-left: 1px solid rgba(157, 198, 255, 0.18);
 }
 
+.operational-readiness {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.5fr) minmax(260px, 1fr) minmax(
+      220px,
+      0.8fr
+    );
+  gap: 14px;
+  align-items: start;
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  border-radius: 6px;
+  padding: 14px 16px;
+  color: #f8e4b1;
+  background: rgba(59, 38, 8, 0.48);
+}
+
+.operational-readiness span,
+.operational-readiness li {
+  color: #d8b66d;
+  font-size: 0.76rem;
+}
+
+.operational-readiness strong {
+  display: block;
+  margin-top: 3px;
+  color: #fff4cf;
+  font-size: 0.95rem;
+}
+
+.operational-readiness p {
+  color: #ffe9b8;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.operational-readiness ul {
+  display: grid;
+  gap: 5px;
+  padding-left: 16px;
+}
+
 .disclaimer {
   max-width: 980px;
   color: #9fb1c6;

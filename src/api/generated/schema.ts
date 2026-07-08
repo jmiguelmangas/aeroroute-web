@@ -124,6 +124,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/operational-readiness": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Operational Readiness */
+    get: operations["operational_readiness_api_v1_operational_readiness_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/optimizations": {
     parameters: {
       query?: never;
@@ -556,6 +573,79 @@ export interface components {
       time_weight: number;
       /** Total Score */
       total_score: number;
+    };
+    /** OperationalReadinessGap */
+    OperationalReadinessGap: {
+      /** Code */
+      code: string;
+      /** Detail */
+      detail: string;
+      /**
+       * Severity
+       * @enum {string}
+       */
+      severity: "blocking" | "warning";
+      /** Title */
+      title: string;
+    };
+    /** OperationalReadinessResponse */
+    OperationalReadinessResponse: {
+      /**
+       * Active Mode
+       * @enum {string}
+       */
+      active_mode: "simulator" | "ops_candidate" | "approved_operator_build";
+      /**
+       * Approval Required
+       * @default true
+       */
+      approval_required: boolean;
+      /** Disclaimer */
+      disclaimer: string;
+      /** Gaps */
+      gaps?: components["schemas"]["OperationalReadinessGap"][];
+      /**
+       * Licensed Operational Data Present
+       * @default false
+       */
+      licensed_operational_data_present: boolean;
+      /**
+       * Manual Procedure Acceptance Present
+       * @default false
+       */
+      manual_procedure_acceptance_present: boolean;
+      /** Operational Use Enabled */
+      operational_use_enabled: boolean;
+      /**
+       * Operator Profile Present
+       * @default false
+       */
+      operator_profile_present: boolean;
+      /**
+       * Regulator Path Identified
+       * @default false
+       */
+      regulator_path_identified: boolean;
+      /**
+       * Requested Mode
+       * @enum {string}
+       */
+      requested_mode: "simulator" | "ops_candidate" | "approved_operator_build";
+      /**
+       * Requirements Traceability Present
+       * @default false
+       */
+      requirements_traceability_present: boolean;
+      /**
+       * Safety Case Present
+       * @default false
+       */
+      safety_case_present: boolean;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "simulator_only" | "blocked" | "approved";
     };
     /** OptimizationHistoryItem */
     OptimizationHistoryItem: {
@@ -1160,6 +1250,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  operational_readiness_api_v1_operational_readiness_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OperationalReadinessResponse"];
         };
       };
     };
