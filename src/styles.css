@@ -281,6 +281,27 @@ h1 span,
   line-height: 1.35;
 }
 
+.route-support-note {
+  border: 1px solid rgba(147, 197, 253, 0.24);
+  border-radius: 6px;
+  color: #7f94aa;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  margin: 0;
+  padding: 0.5rem 0.6rem;
+}
+
+.route-support-note.supported {
+  border-color: rgba(96, 165, 250, 0.38);
+  color: #bfdbfe;
+}
+
+.route-support-note.unsupported,
+.route-support-note.unavailable {
+  border-color: rgba(251, 191, 36, 0.38);
+  color: #fde68a;
+}
+
 .terminal-summary {
   margin-top: 10px;
   border-top: 1px solid rgba(157, 198, 255, 0.16);

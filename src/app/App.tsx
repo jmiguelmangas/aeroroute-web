@@ -15,10 +15,12 @@ import {
   Explanation,
   FuelPlan,
   getExplanation,
+  getRouteSupport,
   getRunwayOptions,
   getWindField,
   OptimizationProfile,
   OptimizationResult,
+  RouteSupport,
   RunwayOptions,
   TerminalSelection,
   WaypointDetail,
@@ -228,6 +230,13 @@ function DashboardPage() {
     queryFn: () =>
       getRunwayOptions(destinationIcao, "STAR", runwayForecastTime),
     enabled: destinationIcao.length === 4,
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+  const routeSupport = useQuery({
+    queryKey: ["route-support", originIcao, destinationIcao],
+    queryFn: () => getRouteSupport(originIcao, destinationIcao),
+    enabled: originIcao.length === 4 && destinationIcao.length === 4,
     staleTime: 30 * 60 * 1000,
     retry: 1,
   });
@@ -477,6 +486,10 @@ function DashboardPage() {
             <p className="runway-note">
               {runwayRecommendationNote(departureRunways.data)}
             </p>
+            <RouteSupportNote
+              loading={routeSupport.isFetching}
+              support={routeSupport.data}
+            />
             <div className="planning-fields">
               <Field label="Callsign">
                 <input maxLength={12} {...register("callsign")} />
@@ -1285,6 +1298,40 @@ function runwayRecommendationNote(options: RunwayOptions | undefined) {
     return `AIRAC + ${options.surface_wind_source ?? "weather"}: ${Math.round(options.surface_wind_speed_kt)} kt from ${Math.round(options.surface_wind_direction_deg)}°. NOTAM, runway condition and ATC assignment are not applied.`;
   }
   return "AIRAC recommendation; surface wind unavailable. NOTAM, runway condition and ATC assignment are not applied.";
+}
+
+function RouteSupportNote({
+  loading,
+  support,
+}: {
+  loading: boolean;
+  support: RouteSupport | undefined;
+}) {
+  if (loading && !support) {
+    return <p className="route-support-note">Checking AIRAC route support...</p>;
+  }
+  if (!support) return null;
+  const firstProblem = support.problems?.[0];
+  const loadingMode =
+    typeof support.navigation_manifest.loading === "string"
+      ? support.navigation_manifest.loading
+      : "on-demand";
+  if (support.supported) {
+    return (
+      <p className="route-support-note supported">
+        Supported route snapshot · AIRAC {support.airac_cycle ?? "current"} ·{" "}
+        {loadingMode} loading
+      </p>
+    );
+  }
+  return (
+    <p className={`route-support-note ${support.status}`}>
+      {support.status === "unavailable"
+        ? "AIRAC route support unavailable"
+        : "Route not fully supported"}
+      {firstProblem ? ` · ${firstProblem.message}` : ""}
+    </p>
+  );
 }
 
 function terminalDescription(

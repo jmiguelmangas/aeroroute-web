@@ -8,7 +8,15 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { MemoryRouter } from "react-router-dom";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 
 import type { FlightPlanRequest, OptimizationResult } from "../api/client";
 import { App } from "./App";
@@ -124,6 +132,25 @@ function flightPlanResponse(optimization: OptimizationResult) {
 }
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+beforeEach(() => {
+  server.use(
+    http.get("http://localhost:8000/api/v1/airports/route-support", () =>
+      HttpResponse.json({
+        origin_icao: "LEMD",
+        destination_icao: "KJFK",
+        supported: true,
+        status: "supported",
+        airac_cycle: "2606",
+        navigation_manifest: {
+          source: "airac.net",
+          loading: "on_demand",
+        },
+        airports: [],
+        problems: [],
+      })
+    )
+  );
+});
 afterEach(() => {
   cleanup();
   server.resetHandlers();

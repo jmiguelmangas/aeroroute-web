@@ -147,6 +147,24 @@ const flightPlanResponse = {
 };
 
 test.beforeEach(async ({ page }) => {
+  await page.route("**/api/v1/airports/route-support?**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        origin_icao: "LEMD",
+        destination_icao: "KJFK",
+        supported: true,
+        status: "supported",
+        airac_cycle: "2606",
+        navigation_manifest: {
+          source: "airac.net",
+          loading: "on_demand",
+        },
+        airports: [],
+        problems: [],
+      }),
+    });
+  });
   await page.route("**/api/v1/airports/*/runways?**", async (route) => {
     const url = new URL(route.request().url());
     const airport = url.pathname.split("/").at(-2);

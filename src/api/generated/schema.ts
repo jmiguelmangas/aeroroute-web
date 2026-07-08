@@ -21,6 +21,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/airports/route-support": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Route Support */
+    get: operations["route_support_api_v1_airports_route_support_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/airports/{icao}/procedures": {
     parameters: {
       query?: never;
@@ -658,6 +675,68 @@ export interface components {
       /** Longitude Deg */
       longitude_deg: number;
     };
+    /** RouteSupportAirportCoverage */
+    RouteSupportAirportCoverage: {
+      /** Airac Cycle */
+      airac_cycle?: string | null;
+      /** Airport Icao */
+      airport_icao: string;
+      /**
+       * Compatible Procedure Count
+       * @default 0
+       */
+      compatible_procedure_count: number;
+      /** Procedure Available */
+      procedure_available: boolean;
+      /**
+       * Procedure Type
+       * @enum {string}
+       */
+      procedure_type: "SID" | "STAR";
+      /** Runway Available */
+      runway_available: boolean;
+      /** Suggested Runway */
+      suggested_runway?: string | null;
+    };
+    /** RouteSupportProblem */
+    RouteSupportProblem: {
+      /** Airport Icao */
+      airport_icao?: string | null;
+      /**
+       * Code
+       * @enum {string}
+       */
+      code:
+        | "airport_not_supported"
+        | "navigation_provider_unavailable"
+        | "runway_procedure_coverage_missing";
+      /** Message */
+      message: string;
+    };
+    /** RouteSupportResponse */
+    RouteSupportResponse: {
+      /** Airac Cycle */
+      airac_cycle?: string | null;
+      /** Airports */
+      airports?: components["schemas"]["RouteSupportAirportCoverage"][];
+      /** Destination Icao */
+      destination_icao: string;
+      /** Navigation Manifest */
+      navigation_manifest: {
+        [key: string]: unknown;
+      };
+      /** Origin Icao */
+      origin_icao: string;
+      /** Problems */
+      problems?: components["schemas"]["RouteSupportProblem"][];
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "supported" | "unsupported" | "unavailable";
+      /** Supported */
+      supported: boolean;
+    };
     /** RunwayOption */
     RunwayOption: {
       /** Bearing Deg */
@@ -857,6 +936,38 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["AirportPage"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  route_support_api_v1_airports_route_support_get: {
+    parameters: {
+      query: {
+        origin_icao: string;
+        destination_icao: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RouteSupportResponse"];
         };
       };
       /** @description Validation Error */

@@ -19,6 +19,7 @@ export type OptimizationHistoryItem =
 export type OptimizationRequest = components["schemas"]["OptimizationRequest"];
 export type OptimizationResult = components["schemas"]["OptimizationResponse"];
 export type RoutePoint = components["schemas"]["RoutePoint"];
+export type RouteSupport = components["schemas"]["RouteSupportResponse"];
 export type RunwayOptions = components["schemas"]["RunwayOptionsResponse"];
 export type TerminalSelection = components["schemas"]["TerminalSelection"];
 export type WaypointDetail = components["schemas"]["WaypointDetail"];
@@ -116,6 +117,19 @@ export async function getRunwayOptions(
     },
   });
   if (error || !data) throw new Error("Runway options unavailable.");
+  return data;
+}
+
+export async function getRouteSupport(
+  originIcao: string,
+  destinationIcao: string
+): Promise<RouteSupport> {
+  const { data, error } = await api.GET("/api/v1/airports/route-support", {
+    params: {
+      query: { origin_icao: originIcao, destination_icao: destinationIcao },
+    },
+  });
+  if (error || !data) throw new Error("Route support check unavailable.");
   return data;
 }
 
