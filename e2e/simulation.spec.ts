@@ -187,7 +187,9 @@ test("searches routes and shows the dashboard result", async ({ page }) => {
 
   await page.goto("/");
   await expect(
-    page.getByText("AeroRoute MLX is an educational trajectory-efficiency")
+    page.getByText(
+      "AeroRoute MLX generates an educational pre-operational flight-plan"
+    )
   ).toBeVisible();
   await page
     .getByRole("combobox", { name: "Departure runway" })
