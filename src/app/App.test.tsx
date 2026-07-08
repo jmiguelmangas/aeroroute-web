@@ -155,6 +155,9 @@ beforeEach(() => {
         requested_mode: "simulator",
         operational_use_enabled: false,
         status: "simulator_only",
+        evidence_contract_version: "1.0.0",
+        evidence_baseline: "operational-readiness-evidence-2026-07-08",
+        hazard_log_baseline: "operational-hazard-log-2026-07-08",
         approval_required: true,
         regulator_path_identified: false,
         operator_profile_present: false,
@@ -304,6 +307,9 @@ describe("AeroRoute search", () => {
 
     expect(await screen.findByText("Simulator mode only")).toBeVisible();
     expect(screen.getByText("Launch operator not configured")).toBeVisible();
+    expect(
+      screen.getByText(/operational-readiness-evidence-2026-07-08/)
+    ).toBeVisible();
     expect(screen.getByText(/not ICAO-fileable/)).toBeVisible();
   });
 

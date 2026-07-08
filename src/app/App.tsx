@@ -685,6 +685,14 @@ function OperationalReadinessPanel({
         {readiness?.disclaimer ??
           "Operational readiness is not available; keep treating every output as non-operational."}
       </p>
+      {readiness?.evidence_baseline ? (
+        <p>
+          Evidence baseline: {readiness.evidence_baseline}
+          {readiness.hazard_log_baseline
+            ? ` · Hazard log: ${readiness.hazard_log_baseline}`
+            : ""}
+        </p>
+      ) : null}
       {gaps.length ? (
         <ul>
           {gaps.map((gap) => (

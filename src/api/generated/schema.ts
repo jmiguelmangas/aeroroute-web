@@ -602,8 +602,17 @@ export interface components {
       approval_required: boolean;
       /** Disclaimer */
       disclaimer: string;
+      /** Evidence Baseline */
+      evidence_baseline: string;
+      /**
+       * Evidence Contract Version
+       * @default 1.0.0
+       */
+      evidence_contract_version: string;
       /** Gaps */
       gaps?: components["schemas"]["OperationalReadinessGap"][];
+      /** Hazard Log Baseline */
+      hazard_log_baseline: string;
       /**
        * Licensed Operational Data Present
        * @default false
