@@ -1308,7 +1308,9 @@ function RouteSupportNote({
   support: RouteSupport | undefined;
 }) {
   if (loading && !support) {
-    return <p className="route-support-note">Checking AIRAC route support...</p>;
+    return (
+      <p className="route-support-note">Checking AIRAC route support...</p>
+    );
   }
   if (!support) return null;
   const firstProblem = support.problems?.[0];
