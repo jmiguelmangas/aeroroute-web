@@ -631,9 +631,10 @@ function DashboardPage() {
         <span>Built for pilots, dispatchers and analysts</span>
       </footer>
       <p className="disclaimer">
-        AeroRoute MLX is an educational trajectory-efficiency simulator. Results
-        are approximate, may use incomplete public data, and are not suitable
-        for operational flight planning or safety-critical decisions.
+        AeroRoute MLX generates an educational pre-operational flight-plan
+        simulation. Results are approximate, may use incomplete public data, are
+        not an ICAO-fileable flight plan, and are not suitable for operational
+        or safety-critical decisions.
       </p>
     </main>
   );

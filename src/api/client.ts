@@ -40,10 +40,14 @@ export async function createOptimization(
     const { data, error } = await api.POST("/api/v1/optimizations", {
       body: request,
     });
-    if (error || !data) throw new Error();
+    if (error || !data) {
+      throw new Error(
+        publicErrorMessage(error, "The simulation could not be completed.")
+      );
+    }
     return data;
-  } catch {
-    throw new Error("The simulation could not be completed.");
+  } catch (error) {
+    throw normalizedError(error, "The simulation could not be completed.");
   }
 }
 
@@ -54,10 +58,14 @@ export async function createFlightPlan(
     const { data, error } = await api.POST("/api/v1/flight-plans", {
       body: request,
     });
-    if (error || !data) throw new Error();
+    if (error || !data) {
+      throw new Error(
+        publicErrorMessage(error, "The flight plan could not be generated.")
+      );
+    }
     return data;
-  } catch {
-    throw new Error("The flight plan could not be generated.");
+  } catch (error) {
+    throw normalizedError(error, "The flight plan could not be generated.");
   }
 }
 
@@ -168,4 +176,21 @@ export async function getWindField(
   });
   if (error || !data) throw new Error("Wind field unavailable.");
   return data;
+}
+
+function publicErrorMessage(error: unknown, fallback: string): string {
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof error.message === "string" &&
+    error.message.length <= 240
+  ) {
+    return error.message;
+  }
+  return fallback;
+}
+
+function normalizedError(error: unknown, fallback: string): Error {
+  return error instanceof Error ? error : new Error(fallback);
 }
