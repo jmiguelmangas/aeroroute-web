@@ -15,12 +15,14 @@ import {
   Explanation,
   FuelPlan,
   getExplanation,
+  getOperationalDataSources,
   getOperationalReadiness,
   getRouteSupport,
   getRunwayOptions,
   getWindField,
   OptimizationProfile,
   OptimizationResult,
+  OperationalDataSources,
   OperationalReadiness,
   RouteSupport,
   RunwayOptions,
@@ -245,6 +247,12 @@ function DashboardPage() {
   const operationalReadiness = useQuery({
     queryKey: ["operational-readiness"],
     queryFn: getOperationalReadiness,
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+  const operationalDataSources = useQuery({
+    queryKey: ["operational-data-sources"],
+    queryFn: getOperationalDataSources,
     staleTime: 30 * 60 * 1000,
     retry: 1,
   });
@@ -651,7 +659,10 @@ function DashboardPage() {
         <span>Traceable and reproducible</span>
         <span>Built for pilots, dispatchers and analysts</span>
       </footer>
-      <OperationalReadinessPanel readiness={operationalReadiness.data} />
+      <OperationalReadinessPanel
+        dataSources={operationalDataSources.data}
+        readiness={operationalReadiness.data}
+      />
       <p className="disclaimer">
         AeroRoute MLX generates an educational pre-operational flight-plan
         simulation. Results are approximate, may use incomplete public data, are
@@ -663,11 +674,14 @@ function DashboardPage() {
 }
 
 function OperationalReadinessPanel({
+  dataSources,
   readiness,
 }: {
+  dataSources: OperationalDataSources | undefined;
   readiness: OperationalReadiness | undefined;
 }) {
   const gaps = (readiness?.gaps ?? []).slice(0, 3);
+  const blockingDomains = (dataSources?.blocking_domains ?? []).slice(0, 4);
   return (
     <section
       className="operational-readiness"
@@ -690,6 +704,14 @@ function OperationalReadinessPanel({
           Evidence baseline: {readiness.evidence_baseline}
           {readiness.hazard_log_baseline
             ? ` · Hazard log: ${readiness.hazard_log_baseline}`
+            : ""}
+        </p>
+      ) : null}
+      {dataSources?.data_baseline ? (
+        <p>
+          Data baseline: {dataSources.data_baseline}
+          {blockingDomains.length
+            ? ` · Blocking: ${blockingDomains.join(", ")}`
             : ""}
         </p>
       ) : null}

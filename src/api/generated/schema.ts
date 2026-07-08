@@ -124,6 +124,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/operational-data-sources": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Operational Data Sources */
+    get: operations["operational_data_sources_api_v1_operational_data_sources_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/operational-readiness": {
     parameters: {
       query?: never;
@@ -573,6 +590,126 @@ export interface components {
       time_weight: number;
       /** Total Score */
       total_score: number;
+    };
+    /** OperationalDataSource */
+    OperationalDataSource: {
+      /** Blockers */
+      blockers?: string[];
+      /**
+       * Contract Version
+       * @default 1.0.0
+       */
+      contract_version: string;
+      /**
+       * Domain
+       * @enum {string}
+       */
+      domain:
+        | "navdata"
+        | "weather"
+        | "notam"
+        | "airspace_restrictions"
+        | "airport_status"
+        | "terrain_obstacle"
+        | "aircraft_performance"
+        | "filing";
+      /** Expires At */
+      expires_at?: string | null;
+      /**
+       * Fallback Behavior
+       * @enum {string}
+       */
+      fallback_behavior:
+        | "block_operational_use"
+        | "degrade_simulator_only"
+        | "not_available";
+      license: components["schemas"]["OperationalDataSourceLicense"];
+      /** Operational Ready */
+      operational_ready: boolean;
+      quality: components["schemas"]["OperationalDataSourceQuality"];
+      /** Source */
+      source: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "missing" | "demo_only" | "candidate" | "expired" | "operational";
+      /** Timestamp */
+      timestamp?: string | null;
+      /** Version Or Cycle */
+      version_or_cycle?: string | null;
+    };
+    /** OperationalDataSourceLicense */
+    OperationalDataSourceLicense: {
+      /** Approved For Operational Use */
+      approved_for_operational_use: boolean;
+      /** Redistribution Allowed */
+      redistribution_allowed: boolean;
+      /** Terms */
+      terms: string;
+    };
+    /** OperationalDataSourceQuality */
+    OperationalDataSourceQuality: {
+      /**
+       * Grade
+       * @enum {string}
+       */
+      grade:
+        | "unknown"
+        | "demo"
+        | "public_reference"
+        | "candidate"
+        | "operational";
+      /** Validated At */
+      validated_at?: string | null;
+      /**
+       * Validation Status
+       * @enum {string}
+       */
+      validation_status: "not_validated" | "partial" | "validated";
+    };
+    /** OperationalDataSourcesResponse */
+    OperationalDataSourcesResponse: {
+      /**
+       * Active Mode
+       * @constant
+       */
+      active_mode: "simulator";
+      /** Blocking Domains */
+      blocking_domains?: (
+        | "navdata"
+        | "weather"
+        | "notam"
+        | "airspace_restrictions"
+        | "airport_status"
+        | "terrain_obstacle"
+        | "aircraft_performance"
+        | "filing"
+      )[];
+      /**
+       * Data Baseline
+       * @default operational-data-sources-2026-07-09
+       */
+      data_baseline: string;
+      /**
+       * Data Contract Version
+       * @default 1.0.0
+       */
+      data_contract_version: string;
+      /** Operational Use Enabled */
+      operational_use_enabled: boolean;
+      /**
+       * Requested Mode
+       * @enum {string}
+       */
+      requested_mode: "simulator" | "ops_candidate" | "approved_operator_build";
+      /** Sources */
+      sources: components["schemas"]["OperationalDataSource"][];
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "simulator_only" | "blocked";
     };
     /** OperationalReadinessGap */
     OperationalReadinessGap: {
@@ -1259,6 +1396,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  operational_data_sources_api_v1_operational_data_sources_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OperationalDataSourcesResponse"];
         };
       };
     };

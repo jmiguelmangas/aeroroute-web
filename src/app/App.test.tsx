@@ -176,6 +176,18 @@ beforeEach(() => {
           },
         ],
       })
+    ),
+    http.get("http://localhost:8000/api/v1/operational-data-sources", () =>
+      HttpResponse.json({
+        active_mode: "simulator",
+        requested_mode: "simulator",
+        operational_use_enabled: false,
+        data_contract_version: "1.0.0",
+        data_baseline: "operational-data-sources-2026-07-09",
+        status: "simulator_only",
+        sources: [],
+        blocking_domains: ["notam", "airspace_restrictions"],
+      })
     )
   );
 });
@@ -310,6 +322,10 @@ describe("AeroRoute search", () => {
     expect(
       screen.getByText(/operational-readiness-evidence-2026-07-08/)
     ).toBeVisible();
+    expect(
+      screen.getByText(/operational-data-sources-2026-07-09/)
+    ).toBeVisible();
+    expect(screen.getByText(/notam, airspace_restrictions/)).toBeVisible();
     expect(screen.getByText(/not ICAO-fileable/)).toBeVisible();
   });
 

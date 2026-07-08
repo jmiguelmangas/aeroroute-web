@@ -20,6 +20,8 @@ export type OptimizationRequest = components["schemas"]["OptimizationRequest"];
 export type OptimizationResult = components["schemas"]["OptimizationResponse"];
 export type OperationalReadiness =
   components["schemas"]["OperationalReadinessResponse"];
+export type OperationalDataSources =
+  components["schemas"]["OperationalDataSourcesResponse"];
 export type RoutePoint = components["schemas"]["RoutePoint"];
 export type RouteSupport = components["schemas"]["RouteSupportResponse"];
 export type RunwayOptions = components["schemas"]["RunwayOptionsResponse"];
@@ -197,6 +199,12 @@ export async function getWindField(
 export async function getOperationalReadiness(): Promise<OperationalReadiness> {
   const { data, error } = await api.GET("/api/v1/operational-readiness");
   if (error || !data) throw new Error("Operational readiness unavailable.");
+  return data;
+}
+
+export async function getOperationalDataSources(): Promise<OperationalDataSources> {
+  const { data, error } = await api.GET("/api/v1/operational-data-sources");
+  if (error || !data) throw new Error("Operational data sources unavailable.");
   return data;
 }
 
