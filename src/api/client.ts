@@ -3,6 +3,8 @@ import createClient from "openapi-fetch";
 import type { components, paths } from "./generated/schema";
 
 export type Airport = components["schemas"]["AirportResponse"];
+export type AssuranceReadiness =
+  components["schemas"]["AssuranceReadinessResponse"];
 export type Candidate = components["schemas"]["CandidateResponse"];
 export type DataQualityFlag = components["schemas"]["DataQualityFlag"];
 export type Explanation = components["schemas"]["ExplanationResponse"];
@@ -217,6 +219,12 @@ export async function getOperationalDataSources(): Promise<OperationalDataSource
 export async function getDispatchReadiness(): Promise<DispatchReadiness> {
   const { data, error } = await api.GET("/api/v1/dispatch-readiness");
   if (error || !data) throw new Error("Dispatch readiness unavailable.");
+  return data;
+}
+
+export async function getAssuranceReadiness(): Promise<AssuranceReadiness> {
+  const { data, error } = await api.GET("/api/v1/assurance-readiness");
+  if (error || !data) throw new Error("Assurance readiness unavailable.");
   return data;
 }
 

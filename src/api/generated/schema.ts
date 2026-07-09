@@ -72,6 +72,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/assurance-readiness": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Assurance Readiness */
+    get: operations["assurance_readiness_api_v1_assurance_readiness_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/dispatch-readiness": {
     parameters: {
       query?: never;
@@ -324,6 +341,51 @@ export interface components {
       municipality: string | null;
       /** Name */
       name: string;
+    };
+    /** AssuranceReadinessGate */
+    AssuranceReadinessGate: {
+      /** Detail */
+      detail: string;
+      /** Id */
+      id: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "missing" | "partial" | "accepted";
+      /** Title */
+      title: string;
+    };
+    /** AssuranceReadinessResponse */
+    AssuranceReadinessResponse: {
+      /**
+       * Assurance Enabled
+       * @default false
+       */
+      assurance_enabled: boolean;
+      /**
+       * Baseline
+       * @default assurance-readiness-2026-07-09
+       */
+      baseline: string;
+      /**
+       * Contract Version
+       * @default 1.0.0
+       */
+      contract_version: string;
+      /** Gates */
+      gates?: components["schemas"]["AssuranceReadinessGate"][];
+      /**
+       * Operational Use Enabled
+       * @default false
+       */
+      operational_use_enabled: boolean;
+      /**
+       * Status
+       * @default blocked
+       * @constant
+       */
+      status: "blocked";
     };
     /** CandidateResponse */
     CandidateResponse: {
@@ -1453,6 +1515,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  assurance_readiness_api_v1_assurance_readiness_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AssuranceReadinessResponse"];
         };
       };
     };

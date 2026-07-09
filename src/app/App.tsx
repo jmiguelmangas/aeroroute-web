@@ -7,6 +7,7 @@ import { Link, Route, Routes } from "react-router-dom";
 import { z } from "zod";
 
 import {
+  AssuranceReadiness,
   Candidate,
   createFlightPlan,
   DataQualityFlag,
@@ -15,6 +16,7 @@ import {
   EnrouteDiversion,
   Explanation,
   FuelPlan,
+  getAssuranceReadiness,
   getDispatchReadiness,
   getExplanation,
   getOperationalDataSources,
@@ -264,6 +266,12 @@ function DashboardPage() {
   const dispatchReadiness = useQuery({
     queryKey: ["dispatch-readiness"],
     queryFn: getDispatchReadiness,
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+  const assuranceReadiness = useQuery({
+    queryKey: ["assurance-readiness"],
+    queryFn: getAssuranceReadiness,
     staleTime: 30 * 60 * 1000,
     retry: 1,
   });
@@ -693,6 +701,7 @@ function DashboardPage() {
         <span>Built for pilots, dispatchers and analysts</span>
       </footer>
       <OperationalReadinessPanel
+        assuranceReadiness={assuranceReadiness.data}
         dataSources={operationalDataSources.data}
         dispatchReadiness={dispatchReadiness.data}
         fplValidation={icaoFplValidation.data}
@@ -709,11 +718,13 @@ function DashboardPage() {
 }
 
 function OperationalReadinessPanel({
+  assuranceReadiness,
   dataSources,
   dispatchReadiness,
   fplValidation,
   readiness,
 }: {
+  assuranceReadiness: AssuranceReadiness | undefined;
   dataSources: OperationalDataSources | undefined;
   dispatchReadiness: DispatchReadiness | undefined;
   fplValidation: IcaoFplValidation | undefined;
@@ -766,6 +777,12 @@ function OperationalReadinessPanel({
           {dispatchReadiness.dispatch_release_enabled
             ? ""
             : " · Release disabled"}
+        </p>
+      ) : null}
+      {assuranceReadiness?.baseline ? (
+        <p>
+          Assurance readiness: {assuranceReadiness.baseline}
+          {assuranceReadiness.assurance_enabled ? "" : " · Assurance disabled"}
         </p>
       ) : null}
       {gaps.length ? (

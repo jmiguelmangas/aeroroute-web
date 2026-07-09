@@ -208,6 +208,16 @@ beforeEach(() => {
         status: "blocked",
         gates: [],
       })
+    ),
+    http.get("http://localhost:8000/api/v1/assurance-readiness", () =>
+      HttpResponse.json({
+        contract_version: "1.0.0",
+        baseline: "assurance-readiness-2026-07-09",
+        operational_use_enabled: false,
+        assurance_enabled: false,
+        status: "blocked",
+        gates: [],
+      })
     )
   );
 });
@@ -350,6 +360,8 @@ describe("AeroRoute search", () => {
     expect(screen.getByText(/Filing disabled/)).toBeVisible();
     expect(screen.getByText(/dispatch-readiness-2026-07-09/)).toBeVisible();
     expect(screen.getByText(/Release disabled/)).toBeVisible();
+    expect(screen.getByText(/assurance-readiness-2026-07-09/)).toBeVisible();
+    expect(screen.getByText(/Assurance disabled/)).toBeVisible();
     expect(screen.getByText(/not ICAO-fileable/)).toBeVisible();
   });
 
