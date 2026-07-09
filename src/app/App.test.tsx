@@ -53,6 +53,18 @@ const result: OptimizationResult = {
     time_s: 28_680,
     fuel_kg: 69_239,
     score: 0,
+    objective_breakdown: {
+      fuel_delta: -0.03,
+      time_delta: -0.008,
+      route_extension: 0.004,
+      fuel_weight: 0.8,
+      time_weight: 0.15,
+      extension_weight: 0.05,
+      fuel_component: -0.024,
+      time_component: -0.0012,
+      extension_component: 0.0002,
+      total_score: -0.025,
+    },
   },
   alternatives: [],
   assumptions: ["Aircraft-specific mass assumptions"],
@@ -238,6 +250,15 @@ beforeEach(() => {
         ops_mode: "simulator",
         gates: [],
       })
+    ),
+    http.get(
+      "http://localhost:8000/api/v1/optimizations/:runId/explanation",
+      () =>
+        HttpResponse.json({
+          provider: "template",
+          text: "Deterministic explanation fetched from the backend for this run.",
+          warnings: [],
+        })
     )
   );
 });
@@ -362,6 +383,33 @@ describe("AeroRoute search", () => {
     await user.click(screen.getByRole("tab", { name: "Alternates" }));
     expect(screen.getByText(/KBOS · Boston Logan/)).toBeVisible();
     expect(screen.getByRole("cell", { name: "CYQX" })).toBeVisible();
+
+    // The explanation panel must show the real, backend-fetched explanation
+    // for this run - not the canned demo text - and the profile claim must
+    // reflect the actual submitted profile (minimum_fuel).
+    expect(
+      await screen.findByText(
+        "Deterministic explanation fetched from the backend for this run."
+      )
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/saves 1,080 kg of estimated fuel/)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "The selected route is the minimum-fuel candidate among the evaluated alternatives."
+      )
+    ).toBeVisible();
+
+    await user.click(screen.getByRole("tab", { name: "Key factors" }));
+    expect(
+      screen.getByText(/selected primarily for lower fuel burn/)
+    ).toBeVisible();
+    expect(
+      screen.queryByText(
+        "Stronger tailwind through the central cruise segments."
+      )
+    ).not.toBeInTheDocument();
   });
 
   it("shows operational readiness blockers from the API", async () => {

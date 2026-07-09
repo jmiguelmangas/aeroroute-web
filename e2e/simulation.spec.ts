@@ -219,6 +219,20 @@ test.beforeEach(async ({ page }) => {
       }),
     });
   });
+  // Default explanation fixture so the dashboard's automatic post-optimization
+  // explanation fetch (real backend call, not fabricated text) has somewhere
+  // to land in every test. Individual tests override this when they need to
+  // assert on specific explanation content.
+  await page.route("**/api/v1/optimizations/*/explanation", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        provider: "template",
+        text: "Deterministic route facts.",
+        warnings: [],
+      }),
+    });
+  });
 });
 
 test("searches routes and shows the dashboard result", async ({ page }) => {
@@ -289,6 +303,16 @@ test("searches routes and shows the dashboard result", async ({ page }) => {
   await page.getByRole("tab", { name: "Summary" }).click();
   await expect(page.getByText("RWY 32L · VAST2N")).toBeVisible();
   await expect(page.getByText("RWY 22L · CAMR4")).toBeVisible();
+
+  // The explanation panel fetches automatically for a real result: it must
+  // show the backend explanation and a profile-derived claim, not fabricated
+  // demo text.
+  await expect(page.getByText("Deterministic route facts.")).toBeVisible();
+  await expect(
+    page.getByText(
+      "The selected route is the minimum-fuel candidate among the evaluated alternatives."
+    )
+  ).toBeVisible();
 });
 
 test("keeps the reference dashboard visible when the API is degraded", async ({

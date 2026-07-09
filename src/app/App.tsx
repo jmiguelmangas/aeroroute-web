@@ -108,6 +108,12 @@ const demoResult: OptimizationResult = {
   status: "demo",
   algorithm_version: "demo-reference",
   solver_termination_reason: "reference_fixture",
+  request: {
+    origin_icao: "LEMD",
+    destination_icao: "KJFK",
+    aircraft_type: "A320",
+    profile: "minimum_fuel",
+  },
   winner: withDisplayData({
     path: ["LEMD", "N42W025", "N45W050", "KJFK"],
     geometry: [
@@ -331,7 +337,15 @@ function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [flightPlanId, setFlightPlanId] = useState<string | null>(null);
-  const [explanation, setExplanation] = useState<Explanation>(demoExplanation);
+  const explanationQuery = useQuery({
+    queryKey: ["dashboard-explanation", result.run_id],
+    queryFn: () => getExplanation(result.run_id as string),
+    enabled: Boolean(result.run_id),
+    retry: 1,
+  });
+  const explanation: Explanation | null = result.run_id
+    ? (explanationQuery.data ?? null)
+    : demoExplanation;
   const [windField, setWindField] = useState<WindField | null>(null);
   const [routeView, setRouteView] = useState<
     "map" | "profile" | "winds" | "details"
@@ -420,7 +434,9 @@ function DashboardPage() {
         destination: airportDisplayCode(values.destination),
         origin: airportDisplayCode(values.origin),
       });
-      setExplanation(demoExplanation);
+      // The explanation panel refetches automatically: its query key includes
+      // result.run_id, which changes as soon as setResult(apiResult) above
+      // commits, triggering a real fetch of the explanation for this run.
     } catch (submissionError) {
       setError(
         submissionError instanceof Error
@@ -429,12 +445,6 @@ function DashboardPage() {
       );
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function loadExplanation() {
-    if (result.run_id) {
-      setExplanation(await getExplanation(result.run_id));
     }
   }
 
@@ -678,12 +688,18 @@ function DashboardPage() {
             onChange={setExplanationView}
           />
           <ExplanationView
+            errorMessage={explanationQuery.error?.message ?? null}
             explanation={explanation}
+            isError={Boolean(result.run_id) && explanationQuery.isError}
+            isLoading={Boolean(result.run_id) && explanationQuery.isPending}
+            profile={result.request?.profile ?? "balanced"}
             view={explanationView}
             winner={winner}
           />
           <Button
-            onClick={() => void loadExplanation()}
+            disabled={!result.run_id}
+            loading={Boolean(result.run_id) && explanationQuery.isFetching}
+            onClick={() => void explanationQuery.refetch()}
             type="button"
             variant="secondary"
           >
@@ -994,21 +1010,38 @@ function RouteVisualization({
   );
 }
 
+const profileClaims: Record<OptimizationProfile, string> = {
+  minimum_fuel:
+    "The selected route is the minimum-fuel candidate among the evaluated alternatives.",
+  minimum_time:
+    "The selected route is the minimum-time candidate among the evaluated alternatives.",
+  balanced:
+    "The selected route balances fuel and time under the configured objective weights.",
+};
+
 function ExplanationView({
+  errorMessage,
   explanation,
+  isError,
+  isLoading,
+  profile,
   view,
   winner,
 }: {
-  explanation: Explanation;
+  errorMessage: string | null;
+  explanation: Explanation | null;
+  isError: boolean;
+  isLoading: boolean;
+  profile: OptimizationProfile;
   view: "explanation" | "factors" | "tradeoffs";
   winner: Candidate | null;
 }) {
   if (view === "factors") {
     return (
       <ul className="factor-list">
-        <li>Stronger tailwind through the central cruise segments.</li>
-        <li>Lower estimated fuel than the displayed alternatives.</li>
-        <li>Bounded route extension inside the synthetic corridor.</li>
+        {deriveFactors(winner).map((factor) => (
+          <li key={factor}>{factor}</li>
+        ))}
       </ul>
     );
   }
@@ -1024,8 +1057,19 @@ function ExplanationView({
           value={`${Math.round((winner?.time_s ?? 0) / 60)} min`}
         />
         <Metric label="Operational validity" value="Not assessed" />
-        <Metric label="Explanation provider" value={explanation.provider} />
+        <Metric
+          label="Explanation provider"
+          value={explanation?.provider ?? "Unavailable"}
+        />
       </dl>
+    );
+  }
+  if (isLoading) {
+    return <p className="loading-state">Generating explanation…</p>;
+  }
+  if (isError || !explanation) {
+    return (
+      <Alert>{errorMessage ?? "The explanation could not be loaded."}</Alert>
     );
   }
   return (
@@ -1037,7 +1081,7 @@ function ExplanationView({
             ? "Generated locally with MLX"
             : "Deterministic fallback"}
         </span>
-        <strong>The selected route is the minimum-fuel candidate.</strong>
+        <strong>{profileClaims[profile]}</strong>
       </div>
       <p className="explanation-text">{explanation.text}</p>
       {explanation.warnings.map((warning) => (
@@ -1047,6 +1091,72 @@ function ExplanationView({
       ))}
     </>
   );
+}
+
+function deriveFactors(candidate: Candidate | null): string[] {
+  const breakdown = candidate?.objective_breakdown;
+  if (!breakdown) {
+    return ["Component-level scoring detail is not available for this route."];
+  }
+  const components = [
+    {
+      key: "fuel" as const,
+      label: "fuel burn",
+      magnitude: Math.abs(breakdown.fuel_component),
+      delta: breakdown.fuel_delta,
+    },
+    {
+      key: "time" as const,
+      label: "flight time",
+      magnitude: Math.abs(breakdown.time_component),
+      delta: breakdown.time_delta,
+    },
+    {
+      key: "extension" as const,
+      label: "route extension",
+      magnitude: Math.abs(breakdown.extension_component),
+      delta: breakdown.route_extension,
+    },
+  ].sort((a, b) => b.magnitude - a.magnitude);
+  const [dominant, secondary] = components;
+  if (dominant.magnitude === 0) {
+    return [
+      "All scored components were neutral for this route versus the baseline candidate.",
+    ];
+  }
+  const sentences: string[] = [];
+  const direction = dominant.delta < 0 ? "lower" : "higher";
+  sentences.push(
+    `The route was selected primarily for ${direction} ${dominant.label} (${formatPercentDelta(dominant.delta)} versus the baseline).`
+  );
+  if (
+    dominant.key !== "extension" &&
+    Math.abs(breakdown.route_extension) >= 0.005
+  ) {
+    sentences.push(
+      `It adds roughly ${formatPercentDelta(breakdown.route_extension)} of route extension versus the shortest candidate.`
+    );
+  }
+  if (
+    secondary &&
+    secondary.magnitude > 0 &&
+    secondary.magnitude >= dominant.magnitude * 0.3
+  ) {
+    sentences.push(
+      `${capitalize(secondary.label)} also contributed to the score (${formatPercentDelta(secondary.delta)}).`
+    );
+  }
+  return sentences.slice(0, 3);
+}
+
+function formatPercentDelta(value: number) {
+  const percent = Math.abs(value * 100);
+  const formatted = percent >= 10 ? percent.toFixed(0) : percent.toFixed(1);
+  return `${formatted}%`;
+}
+
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function TechnicalView({
@@ -1410,12 +1520,34 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 function VerticalProfile({ candidate }: { candidate: Candidate }) {
-  const pointCount = Math.max(candidate.geometry.length, 2);
-  const path = candidate.geometry
-    .map((_, index) => {
-      const x = 35 + (index / (pointCount - 1)) * 730;
-      const edge = index === 0 || index === candidate.geometry.length - 1;
-      const y = edge ? 315 : 78 + (index % 2) * 14;
+  const waypoints = candidate.waypoints;
+  if (waypoints.length < 2) {
+    return (
+      <figure className="profile-chart">
+        <p className="empty-state">
+          Vertical profile unavailable: no per-waypoint flight-level data for
+          this route.
+        </p>
+      </figure>
+    );
+  }
+  // Map each real waypoint's flight level onto a fixed FL0-FL(ceiling) scale
+  // (raised above 400 only if the route actually climbs higher), and place it
+  // horizontally by real cumulative distance flown - not a decorative zigzag.
+  const maxLevel = Math.max(...waypoints.map((point) => point.flight_level), 0);
+  const scaleCeiling = Math.max(400, maxLevel);
+  const totalDistance = waypoints.at(-1)?.cumulative_distance_m ?? 0;
+  const chartTop = 78;
+  const chartBottom = 315;
+  const path = waypoints
+    .map((point, index) => {
+      const fraction =
+        totalDistance > 0
+          ? point.cumulative_distance_m / totalDistance
+          : index / (waypoints.length - 1);
+      const x = 35 + fraction * 730;
+      const altitudeFraction = point.flight_level / scaleCeiling;
+      const y = chartBottom - altitudeFraction * (chartBottom - chartTop);
       return `${index === 0 ? "M" : "L"} ${x} ${y}`;
     })
     .join(" ");
@@ -1434,7 +1566,7 @@ function VerticalProfile({ candidate }: { candidate: Candidate }) {
           Destination
         </text>
         <text x="45" y="70">
-          FL350
+          FL{scaleCeiling}
         </text>
       </svg>
     </figure>
