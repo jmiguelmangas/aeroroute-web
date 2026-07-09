@@ -209,6 +209,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/operator-approval-readiness": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Operator Approval Readiness */
+    get: operations["operator_approval_readiness_api_v1_operator_approval_readiness_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/optimizations": {
     parameters: {
       query?: never;
@@ -1027,6 +1044,57 @@ export interface components {
        */
       status: "simulator_only" | "blocked" | "approved";
     };
+    /** OperatorApprovalGate */
+    OperatorApprovalGate: {
+      /** Detail */
+      detail: string;
+      /** Id */
+      id: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "missing" | "partial" | "accepted";
+      /** Title */
+      title: string;
+    };
+    /** OperatorApprovalReadinessResponse */
+    OperatorApprovalReadinessResponse: {
+      /**
+       * Baseline
+       * @default operator-approval-readiness-2026-07-09
+       */
+      baseline: string;
+      /**
+       * Contract Version
+       * @default 1.0.0
+       */
+      contract_version: string;
+      /** Gates */
+      gates?: components["schemas"]["OperatorApprovalGate"][];
+      /**
+       * Operational Use Enabled
+       * @default false
+       */
+      operational_use_enabled: boolean;
+      /**
+       * Operator Approval Enabled
+       * @default false
+       */
+      operator_approval_enabled: boolean;
+      /**
+       * Ops Mode
+       * @default simulator
+       * @constant
+       */
+      ops_mode: "simulator";
+      /**
+       * Rollout State
+       * @default blocked
+       * @constant
+       */
+      rollout_state: "blocked";
+    };
     /** OptimizationHistoryItem */
     OptimizationHistoryItem: {
       /** Aircraft Type */
@@ -1743,6 +1811,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["OperationalReadinessResponse"];
+        };
+      };
+    };
+  };
+  operator_approval_readiness_api_v1_operator_approval_readiness_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OperatorApprovalReadinessResponse"];
         };
       };
     };

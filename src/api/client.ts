@@ -30,6 +30,8 @@ export type OperationalReadiness =
   components["schemas"]["OperationalReadinessResponse"];
 export type OperationalDataSources =
   components["schemas"]["OperationalDataSourcesResponse"];
+export type OperatorApprovalReadiness =
+  components["schemas"]["OperatorApprovalReadinessResponse"];
 export type RoutePoint = components["schemas"]["RoutePoint"];
 export type RouteSupport = components["schemas"]["RouteSupportResponse"];
 export type RunwayOptions = components["schemas"]["RunwayOptionsResponse"];
@@ -225,6 +227,14 @@ export async function getDispatchReadiness(): Promise<DispatchReadiness> {
 export async function getAssuranceReadiness(): Promise<AssuranceReadiness> {
   const { data, error } = await api.GET("/api/v1/assurance-readiness");
   if (error || !data) throw new Error("Assurance readiness unavailable.");
+  return data;
+}
+
+export async function getOperatorApprovalReadiness(): Promise<OperatorApprovalReadiness> {
+  const { data, error } = await api.GET("/api/v1/operator-approval-readiness");
+  if (error || !data) {
+    throw new Error("Operator approval readiness unavailable.");
+  }
   return data;
 }
 

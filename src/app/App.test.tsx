@@ -218,6 +218,17 @@ beforeEach(() => {
         status: "blocked",
         gates: [],
       })
+    ),
+    http.get("http://localhost:8000/api/v1/operator-approval-readiness", () =>
+      HttpResponse.json({
+        contract_version: "1.0.0",
+        baseline: "operator-approval-readiness-2026-07-09",
+        operational_use_enabled: false,
+        operator_approval_enabled: false,
+        rollout_state: "blocked",
+        ops_mode: "simulator",
+        gates: [],
+      })
     )
   );
 });
@@ -362,6 +373,10 @@ describe("AeroRoute search", () => {
     expect(screen.getByText(/Release disabled/)).toBeVisible();
     expect(screen.getByText(/assurance-readiness-2026-07-09/)).toBeVisible();
     expect(screen.getByText(/Assurance disabled/)).toBeVisible();
+    expect(
+      screen.getByText(/operator-approval-readiness-2026-07-09/)
+    ).toBeVisible();
+    expect(screen.getByText(/Rollout blocked/)).toBeVisible();
     expect(screen.getByText(/not ICAO-fileable/)).toBeVisible();
   });
 

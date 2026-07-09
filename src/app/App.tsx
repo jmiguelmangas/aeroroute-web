@@ -21,6 +21,7 @@ import {
   getExplanation,
   getOperationalDataSources,
   getOperationalReadiness,
+  getOperatorApprovalReadiness,
   getRouteSupport,
   getRunwayOptions,
   getWindField,
@@ -30,6 +31,7 @@ import {
   OptimizationResult,
   OperationalDataSources,
   OperationalReadiness,
+  OperatorApprovalReadiness,
   RouteSupport,
   RunwayOptions,
   TerminalSelection,
@@ -272,6 +274,12 @@ function DashboardPage() {
   const assuranceReadiness = useQuery({
     queryKey: ["assurance-readiness"],
     queryFn: getAssuranceReadiness,
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+  const operatorApprovalReadiness = useQuery({
+    queryKey: ["operator-approval-readiness"],
+    queryFn: getOperatorApprovalReadiness,
     staleTime: 30 * 60 * 1000,
     retry: 1,
   });
@@ -705,6 +713,7 @@ function DashboardPage() {
         dataSources={operationalDataSources.data}
         dispatchReadiness={dispatchReadiness.data}
         fplValidation={icaoFplValidation.data}
+        operatorApprovalReadiness={operatorApprovalReadiness.data}
         readiness={operationalReadiness.data}
       />
       <p className="disclaimer">
@@ -722,12 +731,14 @@ function OperationalReadinessPanel({
   dataSources,
   dispatchReadiness,
   fplValidation,
+  operatorApprovalReadiness,
   readiness,
 }: {
   assuranceReadiness: AssuranceReadiness | undefined;
   dataSources: OperationalDataSources | undefined;
   dispatchReadiness: DispatchReadiness | undefined;
   fplValidation: IcaoFplValidation | undefined;
+  operatorApprovalReadiness: OperatorApprovalReadiness | undefined;
   readiness: OperationalReadiness | undefined;
 }) {
   const gaps = (readiness?.gaps ?? []).slice(0, 3);
@@ -783,6 +794,14 @@ function OperationalReadinessPanel({
         <p>
           Assurance readiness: {assuranceReadiness.baseline}
           {assuranceReadiness.assurance_enabled ? "" : " · Assurance disabled"}
+        </p>
+      ) : null}
+      {operatorApprovalReadiness?.baseline ? (
+        <p>
+          Operator approval: {operatorApprovalReadiness.baseline}
+          {operatorApprovalReadiness.operator_approval_enabled
+            ? ""
+            : " · Rollout blocked"}
         </p>
       ) : null}
       {gaps.length ? (
