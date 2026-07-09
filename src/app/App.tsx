@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { BrainCircuit, Fuel, LockKeyhole, Search, Wind } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Link, Route, Routes } from "react-router-dom";
 import { z } from "zod";
@@ -57,13 +57,29 @@ import {
   weatherEvidence,
   windStatistics,
 } from "../maps/routeMetrics";
-import {
-  AboutPage,
-  FlightPlanDetailPage,
-  FlightPlanHistoryPage,
-  HistoryPage,
-  RunDetailPage,
-} from "../routes/pages";
+const AboutPage = lazy(() =>
+  import("../routes/pages").then((module) => ({ default: module.AboutPage }))
+);
+const FlightPlanDetailPage = lazy(() =>
+  import("../routes/pages").then((module) => ({
+    default: module.FlightPlanDetailPage,
+  }))
+);
+const FlightPlanHistoryPage = lazy(() =>
+  import("../routes/pages").then((module) => ({
+    default: module.FlightPlanHistoryPage,
+  }))
+);
+const HistoryPage = lazy(() =>
+  import("../routes/pages").then((module) => ({
+    default: module.HistoryPage,
+  }))
+);
+const RunDetailPage = lazy(() =>
+  import("../routes/pages").then((module) => ({
+    default: module.RunDetailPage,
+  }))
+);
 
 const profiles: Record<OptimizationProfile, string> = {
   minimum_fuel: "Minimum fuel",
@@ -181,17 +197,19 @@ const demoExplanation: Explanation = {
 
 export function App() {
   return (
-    <Routes>
-      <Route path="/" element={<DashboardPage />} />
-      <Route path="/runs" element={<HistoryPage />} />
-      <Route path="/runs/:runId" element={<RunDetailPage />} />
-      <Route
-        path="/flight-plans/:flightPlanId"
-        element={<FlightPlanDetailPage />}
-      />
-      <Route path="/flight-plans" element={<FlightPlanHistoryPage />} />
-      <Route path="/about" element={<AboutPage />} />
-    </Routes>
+    <Suspense fallback={<p className="loading-state">Loading…</p>}>
+      <Routes>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/runs" element={<HistoryPage />} />
+        <Route path="/runs/:runId" element={<RunDetailPage />} />
+        <Route
+          path="/flight-plans/:flightPlanId"
+          element={<FlightPlanDetailPage />}
+        />
+        <Route path="/flight-plans" element={<FlightPlanHistoryPage />} />
+        <Route path="/about" element={<AboutPage />} />
+      </Routes>
+    </Suspense>
   );
 }
 
