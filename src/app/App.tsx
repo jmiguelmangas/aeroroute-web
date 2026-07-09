@@ -11,9 +11,11 @@ import {
   createFlightPlan,
   DataQualityFlag,
   DestinationAlternate,
+  DispatchReadiness,
   EnrouteDiversion,
   Explanation,
   FuelPlan,
+  getDispatchReadiness,
   getExplanation,
   getOperationalDataSources,
   getOperationalReadiness,
@@ -256,6 +258,12 @@ function DashboardPage() {
   const operationalDataSources = useQuery({
     queryKey: ["operational-data-sources"],
     queryFn: getOperationalDataSources,
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+  const dispatchReadiness = useQuery({
+    queryKey: ["dispatch-readiness"],
+    queryFn: getDispatchReadiness,
     staleTime: 30 * 60 * 1000,
     retry: 1,
   });
@@ -686,6 +694,7 @@ function DashboardPage() {
       </footer>
       <OperationalReadinessPanel
         dataSources={operationalDataSources.data}
+        dispatchReadiness={dispatchReadiness.data}
         fplValidation={icaoFplValidation.data}
         readiness={operationalReadiness.data}
       />
@@ -701,10 +710,12 @@ function DashboardPage() {
 
 function OperationalReadinessPanel({
   dataSources,
+  dispatchReadiness,
   fplValidation,
   readiness,
 }: {
   dataSources: OperationalDataSources | undefined;
+  dispatchReadiness: DispatchReadiness | undefined;
   fplValidation: IcaoFplValidation | undefined;
   readiness: OperationalReadiness | undefined;
 }) {
@@ -747,6 +758,14 @@ function OperationalReadinessPanel({
         <p>
           Filing validation: {fplValidation.baseline}
           {fplValidation.filing_enabled ? "" : " · Filing disabled"}
+        </p>
+      ) : null}
+      {dispatchReadiness?.baseline ? (
+        <p>
+          Dispatch readiness: {dispatchReadiness.baseline}
+          {dispatchReadiness.dispatch_release_enabled
+            ? ""
+            : " · Release disabled"}
         </p>
       ) : null}
       {gaps.length ? (

@@ -198,6 +198,16 @@ beforeEach(() => {
         status: "blocked",
         items: [],
       })
+    ),
+    http.get("http://localhost:8000/api/v1/dispatch-readiness", () =>
+      HttpResponse.json({
+        contract_version: "1.0.0",
+        baseline: "dispatch-readiness-2026-07-09",
+        operational_use_enabled: false,
+        dispatch_release_enabled: false,
+        status: "blocked",
+        gates: [],
+      })
     )
   );
 });
@@ -338,6 +348,8 @@ describe("AeroRoute search", () => {
     expect(screen.getByText(/notam, airspace_restrictions/)).toBeVisible();
     expect(screen.getByText(/icao-fpl-validation-2026-07-09/)).toBeVisible();
     expect(screen.getByText(/Filing disabled/)).toBeVisible();
+    expect(screen.getByText(/dispatch-readiness-2026-07-09/)).toBeVisible();
+    expect(screen.getByText(/Release disabled/)).toBeVisible();
     expect(screen.getByText(/not ICAO-fileable/)).toBeVisible();
   });
 

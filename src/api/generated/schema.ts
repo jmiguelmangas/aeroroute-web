@@ -72,6 +72,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/dispatch-readiness": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Dispatch Readiness */
+    get: operations["dispatch_readiness_api_v1_dispatch_readiness_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/flight-plans": {
     parameters: {
       query?: never;
@@ -372,6 +389,51 @@ export interface components {
        * @enum {string}
        */
       selection: "requested" | "suggested";
+    };
+    /** DispatchReadinessGate */
+    DispatchReadinessGate: {
+      /** Detail */
+      detail: string;
+      /** Id */
+      id: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "missing" | "partial" | "accepted";
+      /** Title */
+      title: string;
+    };
+    /** DispatchReadinessResponse */
+    DispatchReadinessResponse: {
+      /**
+       * Baseline
+       * @default dispatch-readiness-2026-07-09
+       */
+      baseline: string;
+      /**
+       * Contract Version
+       * @default 1.0.0
+       */
+      contract_version: string;
+      /**
+       * Dispatch Release Enabled
+       * @default false
+       */
+      dispatch_release_enabled: boolean;
+      /** Gates */
+      gates?: components["schemas"]["DispatchReadinessGate"][];
+      /**
+       * Operational Use Enabled
+       * @default false
+       */
+      operational_use_enabled: boolean;
+      /**
+       * Status
+       * @default blocked
+       * @constant
+       */
+      status: "blocked";
     };
     /** EnrouteDiversion */
     EnrouteDiversion: {
@@ -1391,6 +1453,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  dispatch_readiness_api_v1_dispatch_readiness_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DispatchReadinessResponse"];
         };
       };
     };

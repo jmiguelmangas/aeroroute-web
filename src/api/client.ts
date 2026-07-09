@@ -8,6 +8,8 @@ export type DataQualityFlag = components["schemas"]["DataQualityFlag"];
 export type Explanation = components["schemas"]["ExplanationResponse"];
 export type DestinationAlternate =
   components["schemas"]["DestinationAlternate"];
+export type DispatchReadiness =
+  components["schemas"]["DispatchReadinessResponse"];
 export type EnrouteDiversion = components["schemas"]["EnrouteDiversion"];
 export type FuelPlan = components["schemas"]["FuelPlanResponse"];
 export type FlightPlanRequest = components["schemas"]["FlightPlanRequest"];
@@ -209,6 +211,12 @@ export async function getOperationalReadiness(): Promise<OperationalReadiness> {
 export async function getOperationalDataSources(): Promise<OperationalDataSources> {
   const { data, error } = await api.GET("/api/v1/operational-data-sources");
   if (error || !data) throw new Error("Operational data sources unavailable.");
+  return data;
+}
+
+export async function getDispatchReadiness(): Promise<DispatchReadiness> {
+  const { data, error } = await api.GET("/api/v1/dispatch-readiness");
+  if (error || !data) throw new Error("Dispatch readiness unavailable.");
   return data;
 }
 
