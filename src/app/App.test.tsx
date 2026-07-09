@@ -196,6 +196,15 @@ beforeEach(() => {
         operational_use_enabled: false,
         filing_enabled: false,
         status: "blocked",
+        aircraft_capability: {
+          aircraft_type: "B77W",
+          capability_baseline: "aircraft-capability-simulator-2026-07-09",
+          operator_approval_status: "missing",
+          allowed_equipment: ["S", "D", "E2", "E3", "J5"],
+          requested_equipment: ["S", "D", "E2", "E3", "J5"],
+          unsupported_equipment: [],
+          blockers: ["Operator aircraft capability approval is not accepted."],
+        },
         items: [],
       })
     ),
@@ -369,6 +378,9 @@ describe("AeroRoute search", () => {
     expect(screen.getByText(/notam, airspace_restrictions/)).toBeVisible();
     expect(screen.getByText(/icao-fpl-validation-2026-07-09/)).toBeVisible();
     expect(screen.getByText(/Filing disabled/)).toBeVisible();
+    expect(
+      screen.getByText(/aircraft-capability-simulator-2026-07-09/)
+    ).toBeVisible();
     expect(screen.getByText(/dispatch-readiness-2026-07-09/)).toBeVisible();
     expect(screen.getByText(/Release disabled/)).toBeVisible();
     expect(screen.getByText(/assurance-readiness-2026-07-09/)).toBeVisible();

@@ -780,6 +780,9 @@ function OperationalReadinessPanel({
         <p>
           Filing validation: {fplValidation.baseline}
           {fplValidation.filing_enabled ? "" : " · Filing disabled"}
+          {fplValidation.aircraft_capability?.capability_baseline
+            ? ` · Aircraft capability: ${fplValidation.aircraft_capability.capability_baseline}`
+            : ""}
         </p>
       ) : null}
       {dispatchReadiness?.baseline ? (

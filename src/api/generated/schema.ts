@@ -333,6 +333,27 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** AircraftCapabilityProfile */
+    AircraftCapabilityProfile: {
+      /** Aircraft Type */
+      aircraft_type: string;
+      /** Allowed Equipment */
+      allowed_equipment?: string[];
+      /** Blockers */
+      blockers?: string[];
+      /** Capability Baseline */
+      capability_baseline: string;
+      /**
+       * Operator Approval Status
+       * @default missing
+       * @enum {string}
+       */
+      operator_approval_status: "missing" | "accepted";
+      /** Requested Equipment */
+      requested_equipment?: string[];
+      /** Unsupported Equipment */
+      unsupported_equipment?: string[];
+    };
     /** AirportPage */
     AirportPage: {
       /** Items */
@@ -791,6 +812,7 @@ export interface components {
     };
     /** IcaoFplValidationResponse */
     IcaoFplValidationResponse: {
+      aircraft_capability: components["schemas"]["AircraftCapabilityProfile"];
       /**
        * Baseline
        * @default icao-fpl-validation-2026-07-09
