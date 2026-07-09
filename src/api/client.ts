@@ -14,6 +14,10 @@ export type FlightPlanRequest = components["schemas"]["FlightPlanRequest"];
 export type FlightPlan = components["schemas"]["FlightPlanResponse"];
 export type FlightPlanHistoryItem =
   components["schemas"]["FlightPlanHistoryItem"];
+export type IcaoFplValidationRequest =
+  components["schemas"]["IcaoFplValidationRequest"];
+export type IcaoFplValidation =
+  components["schemas"]["IcaoFplValidationResponse"];
 export type OptimizationHistoryItem =
   components["schemas"]["OptimizationHistoryItem"];
 export type OptimizationRequest = components["schemas"]["OptimizationRequest"];
@@ -205,6 +209,16 @@ export async function getOperationalReadiness(): Promise<OperationalReadiness> {
 export async function getOperationalDataSources(): Promise<OperationalDataSources> {
   const { data, error } = await api.GET("/api/v1/operational-data-sources");
   if (error || !data) throw new Error("Operational data sources unavailable.");
+  return data;
+}
+
+export async function validateIcaoFpl(
+  request: IcaoFplValidationRequest
+): Promise<IcaoFplValidation> {
+  const { data, error } = await api.POST("/api/v1/icao-fpl/validate", {
+    body: request,
+  });
+  if (error || !data) throw new Error("ICAO FPL validation unavailable.");
   return data;
 }
 

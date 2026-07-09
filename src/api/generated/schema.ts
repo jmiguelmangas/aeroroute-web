@@ -124,6 +124,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/icao-fpl/validate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Validate Fpl */
+    post: operations["validate_fpl_api_v1_icao_fpl_validate_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/operational-data-sources": {
     parameters: {
       query?: never;
@@ -567,6 +584,99 @@ export interface components {
     HTTPValidationError: {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
+    };
+    /** IcaoFplItemValidation */
+    IcaoFplItemValidation: {
+      /** Blockers */
+      blockers?: string[];
+      /**
+       * Item
+       * @enum {string}
+       */
+      item: "7" | "8" | "9" | "10" | "13" | "15" | "16" | "18" | "19";
+      /** Valid */
+      valid: boolean;
+    };
+    /** IcaoFplValidationRequest */
+    IcaoFplValidationRequest: {
+      /** Aircraft Identification */
+      aircraft_identification: string;
+      /** Aircraft Type */
+      aircraft_type: string;
+      /** Alternate Aerodrome */
+      alternate_aerodrome?: string | null;
+      /**
+       * Cruising Level
+       * @default F350
+       */
+      cruising_level: string;
+      /**
+       * Cruising Speed
+       * @default N0480
+       */
+      cruising_speed: string;
+      /** Departure Aerodrome */
+      departure_aerodrome: string;
+      /** Departure Time Hhmm */
+      departure_time_hhmm: string;
+      /** Destination Aerodrome */
+      destination_aerodrome: string;
+      /**
+       * Equipment
+       * @default SDE2E3FGHIJ1J5M1RWXY/LB1
+       */
+      equipment: string;
+      /**
+       * Flight Rules
+       * @default I
+       * @enum {string}
+       */
+      flight_rules: "I" | "V" | "Y" | "Z";
+      /**
+       * Flight Type
+       * @default S
+       * @enum {string}
+       */
+      flight_type: "S" | "N" | "G" | "M" | "X";
+      /**
+       * Other Information
+       * @default
+       */
+      other_information: string;
+      /** Route */
+      route: string;
+      /** Total Eet Hhmm */
+      total_eet_hhmm: string;
+    };
+    /** IcaoFplValidationResponse */
+    IcaoFplValidationResponse: {
+      /**
+       * Baseline
+       * @default icao-fpl-validation-2026-07-09
+       */
+      baseline: string;
+      /**
+       * Contract Version
+       * @default 1.0.0
+       */
+      contract_version: string;
+      /**
+       * Filing Enabled
+       * @default false
+       */
+      filing_enabled: boolean;
+      /** Items */
+      items: components["schemas"]["IcaoFplItemValidation"][];
+      /**
+       * Operational Use Enabled
+       * @default false
+       */
+      operational_use_enabled: boolean;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "blocked" | "invalid";
     };
     /** ObjectiveBreakdown */
     ObjectiveBreakdown: {
@@ -1387,6 +1497,39 @@ export interface operations {
         };
         content: {
           "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  validate_fpl_api_v1_icao_fpl_validate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["IcaoFplValidationRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IcaoFplValidationResponse"];
         };
       };
       /** @description Validation Error */

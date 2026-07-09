@@ -20,6 +20,8 @@ import {
   getRouteSupport,
   getRunwayOptions,
   getWindField,
+  validateIcaoFpl,
+  type IcaoFplValidation,
   OptimizationProfile,
   OptimizationResult,
   OperationalDataSources,
@@ -212,6 +214,7 @@ function DashboardPage() {
   });
   const origin = useWatch({ control, name: "origin" });
   const destination = useWatch({ control, name: "destination" });
+  const aircraft = useWatch({ control, name: "aircraft" });
   const destinationAlternate = useWatch({
     control,
     name: "destinationAlternate",
@@ -253,6 +256,28 @@ function DashboardPage() {
   const operationalDataSources = useQuery({
     queryKey: ["operational-data-sources"],
     queryFn: getOperationalDataSources,
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+  const icaoFplValidation = useQuery({
+    queryKey: ["icao-fpl-validation", originIcao, destinationIcao, aircraft],
+    queryFn: () =>
+      validateIcaoFpl({
+        aircraft_identification: "ARO123",
+        aircraft_type: aircraft,
+        cruising_level: "F350",
+        cruising_speed: "N0480",
+        departure_aerodrome: originIcao,
+        departure_time_hhmm: "1200",
+        destination_aerodrome: destinationIcao,
+        equipment: "SDE2E3FGHIJ1J5M1RWXY/LB1",
+        flight_rules: "I",
+        flight_type: "S",
+        other_information: "",
+        route: `${originIcao} DCT ${destinationIcao}`,
+        total_eet_hhmm: "0700",
+      }),
+    enabled: originIcao.length === 4 && destinationIcao.length === 4,
     staleTime: 30 * 60 * 1000,
     retry: 1,
   });
@@ -661,6 +686,7 @@ function DashboardPage() {
       </footer>
       <OperationalReadinessPanel
         dataSources={operationalDataSources.data}
+        fplValidation={icaoFplValidation.data}
         readiness={operationalReadiness.data}
       />
       <p className="disclaimer">
@@ -675,9 +701,11 @@ function DashboardPage() {
 
 function OperationalReadinessPanel({
   dataSources,
+  fplValidation,
   readiness,
 }: {
   dataSources: OperationalDataSources | undefined;
+  fplValidation: IcaoFplValidation | undefined;
   readiness: OperationalReadiness | undefined;
 }) {
   const gaps = (readiness?.gaps ?? []).slice(0, 3);
@@ -713,6 +741,12 @@ function OperationalReadinessPanel({
           {blockingDomains.length
             ? ` · Blocking: ${blockingDomains.join(", ")}`
             : ""}
+        </p>
+      ) : null}
+      {fplValidation?.baseline ? (
+        <p>
+          Filing validation: {fplValidation.baseline}
+          {fplValidation.filing_enabled ? "" : " · Filing disabled"}
         </p>
       ) : null}
       {gaps.length ? (

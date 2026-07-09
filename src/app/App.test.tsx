@@ -188,6 +188,16 @@ beforeEach(() => {
         sources: [],
         blocking_domains: ["notam", "airspace_restrictions"],
       })
+    ),
+    http.post("http://localhost:8000/api/v1/icao-fpl/validate", () =>
+      HttpResponse.json({
+        contract_version: "1.0.0",
+        baseline: "icao-fpl-validation-2026-07-09",
+        operational_use_enabled: false,
+        filing_enabled: false,
+        status: "blocked",
+        items: [],
+      })
     )
   );
 });
@@ -326,6 +336,8 @@ describe("AeroRoute search", () => {
       screen.getByText(/operational-data-sources-2026-07-09/)
     ).toBeVisible();
     expect(screen.getByText(/notam, airspace_restrictions/)).toBeVisible();
+    expect(screen.getByText(/icao-fpl-validation-2026-07-09/)).toBeVisible();
+    expect(screen.getByText(/Filing disabled/)).toBeVisible();
     expect(screen.getByText(/not ICAO-fileable/)).toBeVisible();
   });
 
