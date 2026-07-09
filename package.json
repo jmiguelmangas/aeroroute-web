@@ -22,16 +22,13 @@
     "@hookform/resolvers": "^5.4.0",
     "@tanstack/react-query": "^5.101.1",
     "@turf/great-circle": "^7.3.5",
-    "@vitejs/plugin-react": "latest",
     "lucide-react": "^1.21.0",
     "maplibre-gl": "^5.24.0",
     "openapi-fetch": "^0.17.0",
-    "react": "latest",
-    "react-dom": "latest",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "react-hook-form": "^7.80.0",
     "react-router-dom": "^7.18.0",
-    "typescript": "latest",
-    "vite": "latest",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -45,6 +42,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "^6.0.0",
     "eslint": "latest",
     "eslint-plugin-react-hooks": "latest",
     "eslint-plugin-react-refresh": "latest",
@@ -56,7 +54,9 @@
     "prettier-plugin-merge": "latest",
     "prettier-plugin-tailwindcss": "latest",
     "storybook": "10.4.6",
+    "typescript": "^6.0.0",
     "typescript-eslint": "latest",
+    "vite": "^8.0.0",
     "vitest": "latest"
   }
 }

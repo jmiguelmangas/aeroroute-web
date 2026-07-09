@@ -893,9 +893,7 @@ export interface components {
        * @enum {string}
        */
       fallback_behavior:
-        | "block_operational_use"
-        | "degrade_simulator_only"
-        | "not_available";
+        "block_operational_use" | "degrade_simulator_only" | "not_available";
       license: components["schemas"]["OperationalDataSourceLicense"];
       /** Operational Ready */
       operational_ready: boolean;
@@ -928,11 +926,7 @@ export interface components {
        * @enum {string}
        */
       grade:
-        | "unknown"
-        | "demo"
-        | "public_reference"
-        | "candidate"
-        | "operational";
+        "unknown" | "demo" | "public_reference" | "candidate" | "operational";
       /** Validated At */
       validated_at?: string | null;
       /**
@@ -1178,8 +1172,7 @@ export interface components {
       /** Data Quality */
       data_quality?: components["schemas"]["DataQualityFlag"][];
       destination_alternate?:
-        | components["schemas"]["DestinationAlternate"]
-        | null;
+        components["schemas"]["DestinationAlternate"] | null;
       /** Enroute Diversions */
       enroute_diversions?: components["schemas"]["EnrouteDiversion"][];
       fuel_iteration?: components["schemas"]["FuelIterationSummary"] | null;
