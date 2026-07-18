@@ -24,37 +24,41 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
 try {
   console.log(`Loading ${baseUrl} ...`);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await page.waitForTimeout(500); // let the map preview settle
 
   const landingPath = resolve(outputDir, "landing-search-form.png");
   await page.screenshot({ path: landingPath, fullPage: false });
   console.log(`Saved ${landingPath}`);
 
-  await page.getByRole("combobox", { name: "Aircraft" }).selectOption("B788");
-  const generateButton = page.getByRole("button", { name: "Generate OFP" });
-  await generateButton.click();
-
-  // Wait for the mutation to resolve (button label reverts) rather than just
-  // row visibility, which can fire while the row is still a loading skeleton.
   await page
-    .getByRole("button", { name: "Generate OFP" })
-    .waitFor({ state: "visible", timeout: 30_000 });
-  const resultRows = page
-    .getByRole("region", { name: "Route analysis" })
-    .getByRole("row");
-  await resultRows.nth(1).waitFor({ state: "visible", timeout: 30_000 });
-  await page.waitForTimeout(1500); // let the map settle its render/animation
+    .getByRole("combobox", { name: "Aeronave" })
+    .selectOption("B788");
+  await page.waitForTimeout(300);
 
   const dashboardPath = resolve(outputDir, "dashboard-mad-jfk.png");
   await page.screenshot({ path: dashboardPath, fullPage: false });
   console.log(`Saved ${dashboardPath}`);
 
-  await page.getByRole("link", { name: "Results" }).click();
-  await page.waitForTimeout(1000);
+  const generateButton = page.getByRole("button", {
+    name: "Generar plan de vuelo",
+  });
+  await generateButton.click();
+
+  // Submitting navigates to the Resultados screen; wait for the comparison
+  // table's first data row rather than just the panel shell.
+  await page
+    .getByRole("cell", { name: /^\d/ })
+    .first()
+    .waitFor({ state: "visible", timeout: 30_000 });
+  await page.waitForTimeout(1500); // let the map settle its render/animation
+
   const resultsPath = resolve(outputDir, "results-comparison.png");
   await page.screenshot({ path: resultsPath, fullPage: false });
   console.log(`Saved ${resultsPath}`);
 
-  const openOfp = page.getByRole("link", { name: "Open OFP" });
+  const openOfp = page.getByRole("button", {
+    name: "Ver plan de vuelo completo",
+  });
   await openOfp.waitFor({ state: "visible", timeout: 15_000 });
   await openOfp.click();
   await page.waitForLoadState("networkidle");
