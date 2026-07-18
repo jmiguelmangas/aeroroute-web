@@ -235,7 +235,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("searches routes and shows the dashboard result", async ({ page }) => {
+test("searches routes and shows the results screen", async ({ page }) => {
   let submitted: Record<string, unknown> | null = null;
   await page.route("**/api/v1/flight-plans", async (route) => {
     submitted = route.request().postDataJSON();
@@ -246,61 +246,56 @@ test("searches routes and shows the dashboard result", async ({ page }) => {
   });
 
   await page.goto("/");
-  await expect(
-    page.getByText(
-      "AeroRoute MLX generates an educational pre-operational flight-plan"
-    )
-  ).toBeVisible();
+  await page.getByRole("button", { name: /Opciones avanzadas/ }).click();
   await page
-    .getByRole("combobox", { name: "Departure runway" })
+    .getByRole("combobox", { name: "Pista salida" })
     .selectOption("32L");
   await page
-    .getByRole("combobox", { name: "Arrival runway" })
+    .getByRole("combobox", { name: "Pista llegada" })
     .selectOption("22L");
-  await page.getByRole("button", { name: "Generate OFP" }).click();
+  await page.getByRole("button", { name: "Generar plan de vuelo" }).click();
 
   expect(submitted).toMatchObject({
     departure_runway: "32L",
     arrival_runway: "22L",
   });
 
+  // Submitting navigates to the Resultados screen.
   await expect(
-    page.getByRole("heading", { name: "2. Compare alternatives" })
+    page.getByRole("heading", { name: "Comparación de rutas" })
   ).toBeVisible();
   await expect(page.getByRole("cell", { name: "18,000" })).toBeVisible();
-  await expect(
-    page
-      .getByRole("region", { name: "Route analysis" })
-      .getByLabel("Synthetic trajectory map")
-  ).toBeVisible();
+  await expect(page.getByLabel("Synthetic trajectory map")).toBeVisible();
 
-  const analysis = page.getByRole("region", { name: "Route analysis" });
-  await analysis.getByRole("button", { name: "Open fullscreen map" }).click();
+  await page.getByRole("button", { name: "Open fullscreen map" }).click();
   await expect(
     page.getByRole("figure", { name: "Fullscreen interactive route map" })
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(
-    analysis.getByRole("button", { name: "Open fullscreen map" })
+    page.getByRole("button", { name: "Open fullscreen map" })
   ).toBeVisible();
-  await analysis.getByRole("button", { name: "Map layers" }).click();
-  await expect(analysis.getByLabel("Navigation points")).toBeChecked();
-  await analysis
+  await page.getByRole("button", { name: "Map layers" }).click();
+  await expect(page.getByLabel("Navigation points")).toBeChecked();
+  await page
     .getByRole("button", {
       name: "SYN-1, Solver node, flight level 350",
     })
     .click();
-  await expect(analysis.getByText("9,000 kg fuel")).toBeVisible();
+  await expect(page.getByText("9,000 kg fuel")).toBeVisible();
 
-  await page.getByRole("tab", { name: "Vertical profile" }).click();
-  await expect(page.getByLabel("Synthetic vertical profile")).toBeVisible();
+  await page.getByRole("tab", { name: "Perfil vertical" }).click();
+  await expect(page.getByLabel("Perfil vertical sintético")).toBeVisible();
 
-  await page.getByRole("tab", { name: "Navigation fixes" }).click();
+  // Technical detail (nav fixes / summary) lives behind the collapsed
+  // "Detalles técnicos" accordion.
+  await page.getByRole("button", { name: "Detalles técnicos" }).click();
+  await page.getByRole("tab", { name: "Fijos de navegación" }).click();
   await expect(
-    page.getByRole("columnheader", { name: "Flight level" })
+    page.getByRole("columnheader", { name: "Nivel de vuelo" })
   ).toBeVisible();
 
-  await page.getByRole("tab", { name: "Summary" }).click();
+  await page.getByRole("tab", { name: "Resumen" }).click();
   await expect(page.getByText("RWY 32L · VAST2N")).toBeVisible();
   await expect(page.getByText("RWY 22L · CAMR4")).toBeVisible();
 
@@ -310,12 +305,12 @@ test("searches routes and shows the dashboard result", async ({ page }) => {
   await expect(page.getByText("Deterministic route facts.")).toBeVisible();
   await expect(
     page.getByText(
-      "The selected route is the minimum-fuel candidate among the evaluated alternatives."
+      "La ruta seleccionada es la candidata de mínimo combustible entre las alternativas evaluadas."
     )
   ).toBeVisible();
 });
 
-test("keeps the reference dashboard visible when the API is degraded", async ({
+test("keeps the reference result visible when the API is degraded", async ({
   page,
 }) => {
   await page.route("**/api/v1/flight-plans", async (route) => {
@@ -323,11 +318,13 @@ test("keeps the reference dashboard visible when the API is degraded", async ({
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Generate OFP" }).click();
+  await page.getByRole("button", { name: "Generar plan de vuelo" }).click();
 
   await expect(
     page.getByRole("alert").getByText("The flight plan could not be generated.")
   ).toBeVisible();
+
+  await page.getByRole("button", { name: "Resultados" }).click();
   await expect(page.getByRole("cell", { name: "49,780" })).toBeVisible();
 });
 
@@ -355,10 +352,10 @@ test("loads an MLX explanation through the existing explanation endpoint", async
   );
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Generate OFP" }).click();
-  await page.getByRole("button", { name: "Regenerate explanation" }).click();
+  await page.getByRole("button", { name: "Generar plan de vuelo" }).click();
+  await page.getByRole("button", { name: "Regenerar explicación" }).click();
 
-  await expect(page.getByText("Generated locally with MLX")).toBeVisible();
+  await expect(page.getByText("Generada localmente con MLX")).toBeVisible();
   await expect(
     page.getByText("MLX explanation constrained to deterministic facts.")
   ).toBeVisible();
@@ -387,7 +384,7 @@ test("selects an airport from the catalogue autocomplete", async ({ page }) => {
   });
 
   await page.goto("/");
-  const origin = page.getByRole("combobox", { name: "Origin" });
+  const origin = page.getByRole("combobox", { name: "Origen" });
   await origin.fill("MAD");
   await page
     .getByRole("button", {
@@ -440,14 +437,14 @@ test("shows persisted run history and its explanation", async ({ page }) => {
 
   await page.goto("/runs");
   await page
-    .getByRole("link", { name: "LEMD KJFK A320 minimum fuel optimal" })
+    .getByRole("button", { name: "LEMD KJFK A320 minimum fuel optimal" })
     .click();
 
   await expect(
     page.getByRole("heading", { name: "LEMD → KJFK" })
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Stored route" })
+    page.getByRole("heading", { name: "Ruta almacenada" })
   ).toBeVisible();
   await expect(page.getByText("Deterministic route facts.")).toBeVisible();
 });
@@ -466,10 +463,14 @@ test("reloads an immutable pre-operational OFP", async ({ page }) => {
     page.getByRole("heading", { name: "ARX101 · LEMD → KJFK" })
   ).toBeVisible();
   await expect(page.getByText(flightPlanResponse.coded_route)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Export JSON" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Export PDF" })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Navigation log" })
+    page.getByRole("button", { name: "Exportar JSON" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Exportar PDF" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Registro de navegación" })
   ).toBeVisible();
 });
 

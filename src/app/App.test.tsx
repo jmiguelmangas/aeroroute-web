@@ -325,15 +325,25 @@ describe("AeroRoute search", () => {
     const user = userEvent.setup();
     renderApp();
 
+    // Runway/callsign/payload fields live behind the "advanced options"
+    // disclosure in the redesigned search form.
+    await user.click(
+      screen.getByRole("button", { name: /Opciones avanzadas/ })
+    );
+
     await user.selectOptions(
-      await screen.findByRole("combobox", { name: "Departure runway" }),
+      await screen.findByRole("combobox", { name: "Pista salida" }),
       "32L"
     );
     await user.selectOptions(
-      screen.getByRole("combobox", { name: "Arrival runway" }),
+      screen.getByRole("combobox", { name: "Pista llegada" }),
       "22L"
     );
-    await user.click(screen.getByRole("button", { name: "Generate OFP" }));
+    expect(await screen.findByText(/18 kt desde 320°/)).toBeVisible();
+
+    await user.click(
+      screen.getByRole("button", { name: "Generar plan de vuelo" })
+    );
 
     await waitFor(() =>
       expect(submitted).toMatchObject({
@@ -341,9 +351,14 @@ describe("AeroRoute search", () => {
         arrival_runway: "22L",
       })
     );
+
+    // Submitting navigates to the Resultados screen; the runway/SID summary
+    // lives inside the collapsed "Detalles técnicos" accordion there.
+    await user.click(
+      await screen.findByRole("button", { name: "Detalles técnicos" })
+    );
     expect(screen.getByText("RWY 32L · VAST2N")).toBeVisible();
     expect(screen.getByText("RWY 22L · CAMR4")).toBeVisible();
-    expect(screen.getByText(/18 kt from 320°/)).toBeVisible();
   });
 
   it("submits the selected widebody and renders the API result", async () => {
@@ -361,10 +376,12 @@ describe("AeroRoute search", () => {
     renderApp();
 
     await user.selectOptions(
-      screen.getByRole("combobox", { name: "Aircraft" }),
+      screen.getByRole("combobox", { name: "Aeronave" }),
       "B77W"
     );
-    await user.click(screen.getByRole("button", { name: "Generate OFP" }));
+    await user.click(
+      screen.getByRole("button", { name: "Generar plan de vuelo" })
+    );
 
     expect(await screen.findByRole("cell", { name: "69,239" })).toBeVisible();
     expect(submitted).toMatchObject({
@@ -375,14 +392,6 @@ describe("AeroRoute search", () => {
       callsign: "ARX101",
       payload_mass_kg: 8_000,
     });
-
-    await user.click(screen.getByRole("tab", { name: "Fuel plan" }));
-    expect(screen.getByText("81,791 kg")).toBeVisible();
-    expect(screen.getByText("Not operational")).toBeVisible();
-
-    await user.click(screen.getByRole("tab", { name: "Alternates" }));
-    expect(screen.getByText(/KBOS · Boston Logan/)).toBeVisible();
-    expect(screen.getByRole("cell", { name: "CYQX" })).toBeVisible();
 
     // The explanation panel must show the real, backend-fetched explanation
     // for this run - not the canned demo text - and the profile claim must
@@ -397,25 +406,33 @@ describe("AeroRoute search", () => {
     ).not.toBeInTheDocument();
     expect(
       screen.getByText(
-        "The selected route is the minimum-fuel candidate among the evaluated alternatives."
+        "La ruta seleccionada es la candidata de mínimo combustible entre las alternativas evaluadas."
       )
     ).toBeVisible();
 
-    await user.click(screen.getByRole("tab", { name: "Key factors" }));
+    await user.click(screen.getByRole("button", { name: "Detalles técnicos" }));
+
+    await user.click(screen.getByRole("tab", { name: "Plan de combustible" }));
+    expect(screen.getByText("81,791 kg")).toBeVisible();
+    expect(screen.getByText("No operacional")).toBeVisible();
+
+    await user.click(screen.getByRole("tab", { name: "Alternos" }));
+    expect(screen.getByText(/KBOS · Boston Logan/)).toBeVisible();
+    expect(screen.getByRole("cell", { name: "CYQX" })).toBeVisible();
+
+    await user.click(screen.getByRole("tab", { name: "Factores clave" }));
     expect(
-      screen.getByText(/selected primarily for lower fuel burn/)
+      screen.getByText(/seleccionó principalmente por menor/)
     ).toBeVisible();
-    expect(
-      screen.queryByText(
-        "Stronger tailwind through the central cruise segments."
-      )
-    ).not.toBeInTheDocument();
   });
 
   it("shows operational readiness blockers from the API", async () => {
+    const user = userEvent.setup();
     renderApp();
 
-    expect(await screen.findByText("Simulator mode only")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Resultados" }));
+
+    expect(await screen.findByText("Solo modo simulador")).toBeVisible();
     expect(screen.getByText("Launch operator not configured")).toBeVisible();
     expect(
       screen.getByText(/operational-readiness-evidence-2026-07-08/)
@@ -425,18 +442,18 @@ describe("AeroRoute search", () => {
     ).toBeVisible();
     expect(screen.getByText(/notam, airspace_restrictions/)).toBeVisible();
     expect(screen.getByText(/icao-fpl-validation-2026-07-09/)).toBeVisible();
-    expect(screen.getByText(/Filing disabled/)).toBeVisible();
+    expect(screen.getByText(/Presentación deshabilitada/)).toBeVisible();
     expect(
       screen.getByText(/aircraft-capability-simulator-2026-07-09/)
     ).toBeVisible();
     expect(screen.getByText(/dispatch-readiness-2026-07-09/)).toBeVisible();
-    expect(screen.getByText(/Release disabled/)).toBeVisible();
+    expect(screen.getByText(/Liberación deshabilitada/)).toBeVisible();
     expect(screen.getByText(/assurance-readiness-2026-07-09/)).toBeVisible();
-    expect(screen.getByText(/Assurance disabled/)).toBeVisible();
+    expect(screen.getByText(/Aseguramiento deshabilitado/)).toBeVisible();
     expect(
       screen.getByText(/operator-approval-readiness-2026-07-09/)
     ).toBeVisible();
-    expect(screen.getByText(/Rollout blocked/)).toBeVisible();
+    expect(screen.getByText(/Despliegue bloqueado/)).toBeVisible();
     expect(screen.getByText(/not ICAO-fileable/)).toBeVisible();
   });
 
@@ -450,11 +467,15 @@ describe("AeroRoute search", () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.click(screen.getByRole("button", { name: "Generate OFP" }));
+    await user.click(
+      screen.getByRole("button", { name: "Generar plan de vuelo" })
+    );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "The flight plan could not be generated."
     );
+
+    await user.click(screen.getByRole("button", { name: "Resultados" }));
     await waitFor(() =>
       expect(screen.getByRole("cell", { name: "49,780" })).toBeVisible()
     );

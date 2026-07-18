@@ -1,7 +1,11 @@
 import {
   CircleAlert,
   LoaderCircle,
+  Minus,
+  Moon,
   Plane,
+  Plus,
+  Sun,
   type LucideIcon,
 } from "lucide-react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
@@ -182,6 +186,76 @@ export function Alert({
     <div className={`ar-alert ar-alert--${tone}`} role="alert">
       <CircleAlert aria-hidden="true" size={18} />
       <span>{children}</span>
+    </div>
+  );
+}
+
+export function NavItem({
+  active,
+  disabled = false,
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={`ar-nav-item ${active ? "active" : ""}`}
+      disabled={disabled}
+      onClick={onClick}
+      type="button"
+    >
+      <Icon aria-hidden="true" size={17} strokeWidth={1.8} />
+      <span>{label}</span>
+    </button>
+  );
+}
+
+export function ThemeToggle({
+  onToggle,
+  theme,
+}: {
+  onToggle: () => void;
+  theme: "light" | "dark";
+}) {
+  const Icon = theme === "dark" ? Sun : Moon;
+  return (
+    <button className="ar-theme-toggle" onClick={onToggle} type="button">
+      <span>{theme === "dark" ? "Modo claro" : "Modo oscuro"}</span>
+      <Icon aria-hidden="true" size={16} strokeWidth={1.8} />
+    </button>
+  );
+}
+
+export function Accordion({
+  children,
+  onToggle,
+  open,
+  title,
+}: {
+  children: ReactNode;
+  onToggle: () => void;
+  open: boolean;
+  title: string;
+}) {
+  const Glyph = open ? Minus : Plus;
+  return (
+    <div className="ar-accordion">
+      <button
+        aria-expanded={open}
+        className="ar-accordion__header"
+        onClick={onToggle}
+        type="button"
+      >
+        <span>{title}</span>
+        <Glyph aria-hidden="true" size={15} strokeWidth={2} />
+      </button>
+      {open ? <div className="ar-accordion__body">{children}</div> : null}
     </div>
   );
 }
